@@ -185,6 +185,7 @@ export const StreamViewMixin = {
     },
 
     showRecordingView() {
+        this.hidePtzControls()
         this.hideStreamView()
         this._mshow("video-player")
         this._mshow("video-controls")
@@ -194,6 +195,7 @@ export const StreamViewMixin = {
     },
 
     hideRecordingView() {
+        this.showPtzControls()
         this._mhide("video-player")
         this._mhide("video-controls")
         this.hideModal()

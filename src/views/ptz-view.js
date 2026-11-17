@@ -100,10 +100,37 @@ export const PtzViewMixin = {
         return [];
     },
 
+    hidePtzControls() {
+        const container = this._element("camera-container") || this._element("aarlo-wrapper");
+        if (container) {
+            const overlay = container.querySelector(".ptz-overlay");
+            if (overlay) overlay.style.display = "none";
+            const bar = container.querySelector(".preset-bar");
+            if (bar) bar.style.display = "none";
+        }
+    },
+
+    showPtzControls() {
+        const container = this._element("camera-container") || this._element("aarlo-wrapper");
+        if (container) {
+            const overlay = container.querySelector(".ptz-overlay");
+            if (overlay) overlay.style.display = "";
+            const bar = container.querySelector(".preset-bar");
+            if (bar) bar.style.display = "";
+        }
+    },
+
     updatePtzControls() {
         if (!this.cc || !this.cc.showPtz) {
             return;
         }
+        // Do not display or update PTZ controls when viewing clip library or watching recordings
+        if (this.ls.showing || (this.gs && this.gs.recording !== null)) {
+            this.hidePtzControls();
+            return;
+        }
+        this.showPtzControls();
+
         const container = this._element("camera-container") || this._element("aarlo-wrapper");
         if (!container) {
             return;

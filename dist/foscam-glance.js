@@ -969,6 +969,7 @@ const LibraryViewMixin = {
     },
 
     showLibraryView() {
+        this.hidePtzControls();
         this._show("library-viewer");
         this._show("library-controls");
         this.hideRecordingView();
@@ -1046,6 +1047,8 @@ const LibraryViewMixin = {
         this.ls.showing = false;
         this.stopRecording();
         this.showImageView();
+        this.showPtzControls();
+        this.updatePtzControls();
     },
 
     showDownloadIcon(index) {
@@ -1245,6 +1248,7 @@ const StreamViewMixin = {
     },
 
     showRecordingView() {
+        this.hidePtzControls();
         this.hideStreamView();
         this._mshow("video-player");
         this._mshow("video-controls");
@@ -1254,6 +1258,7 @@ const StreamViewMixin = {
     },
 
     hideRecordingView() {
+        this.showPtzControls();
         this._mhide("video-player");
         this._mhide("video-controls");
         this.hideModal();
@@ -2038,10 +2043,37 @@ const PtzViewMixin = {
         return [];
     },
 
+    hidePtzControls() {
+        const container = this._element("camera-container") || this._element("aarlo-wrapper");
+        if (container) {
+            const overlay = container.querySelector(".ptz-overlay");
+            if (overlay) overlay.style.display = "none";
+            const bar = container.querySelector(".preset-bar");
+            if (bar) bar.style.display = "none";
+        }
+    },
+
+    showPtzControls() {
+        const container = this._element("camera-container") || this._element("aarlo-wrapper");
+        if (container) {
+            const overlay = container.querySelector(".ptz-overlay");
+            if (overlay) overlay.style.display = "";
+            const bar = container.querySelector(".preset-bar");
+            if (bar) bar.style.display = "";
+        }
+    },
+
     updatePtzControls() {
         if (!this.cc || !this.cc.showPtz) {
             return;
         }
+        // Do not display or update PTZ controls when viewing clip library or watching recordings
+        if (this.ls.showing || (this.gs && this.gs.recording !== null)) {
+            this.hidePtzControls();
+            return;
+        }
+        this.showPtzControls();
+
         const container = this._element("camera-container") || this._element("aarlo-wrapper");
         if (!container) {
             return;

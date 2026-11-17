@@ -244,6 +244,7 @@ export const LibraryViewMixin = {
     },
 
     showLibraryView() {
+        this.hidePtzControls()
         this._show("library-viewer")
         this._show("library-controls")
         this.hideRecordingView()
@@ -321,6 +322,8 @@ export const LibraryViewMixin = {
         this.ls.showing = false
         this.stopRecording()
         this.showImageView()
+        this.showPtzControls()
+        this.updatePtzControls()
     },
 
     showDownloadIcon(index) {
