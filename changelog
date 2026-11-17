@@ -1,0 +1,7 @@
+0.1.0:
+  - Initial release of foscam-glance card for Foscam IP cameras
+  - Live RTSP stream and snapshot viewing
+  - On-screen PTZ D-pad overlay on hover / touch toggle
+  - Preset position quick-action buttons
+  - Range-request saved clip browser modal
+  - Modular rollup build architecture

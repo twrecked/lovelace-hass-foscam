@@ -1,0 +1,3789 @@
+const CARD_VERSION = "0.1.0";
+
+const DEFAULT_MESSAGES = {
+    author: {
+        name: "twrecked",
+    },
+    image: {
+        turn_camera_on: "turn camera on",
+        turn_camera_off: "turn camera off",
+        take_a_snapshot: "take a snapshot",
+        start_stream: "view live stream",
+        stop_stream: "stop live stream",
+        automatic_capture: "automatically captured at",
+        snapshot_capture: "snapshot captured at",
+        feature_disabled: "camera off, feature disabled",
+    },
+    library: {
+        first_page: "first page",
+        previous_page: "previous page",
+        next_size: "next grid size",
+        close: "close library",
+        next_page: "next page",
+        last_page: "last page",
+        captured: "captured",
+        duration: "duration",
+        reason: "reason",
+    },
+    video: {
+        stop: "stop",
+        play: "play",
+        pause: "pause",
+        fullscreen: "go full screen",
+        exit_fullscreen: "exit full screen",
+    },
+    ptz: {
+        up: "Pan Up",
+        down: "Pan Down",
+        left: "Pan Left",
+        right: "Pan Right",
+        stop: "Stop PTZ",
+        preset: "Go to Preset",
+    },
+    status: {
+        detected: "detected",
+        captured: "captured",
+        captured_nothing: "nothing today",
+        captured_something: "clips today, last at",
+        clear: "clear",
+        motion: "motion",
+        sound: "sound",
+        io: "I/O alarm",
+        library: "library",
+        library_empty: "no recordings available",
+        library_open: "click to open",
+    },
+    trigger: {
+        motion: "motion",
+        schedule: "schedule",
+        manual: "manual",
+        alarm: "alarm",
+    },
+    state: {
+        off: "Off",
+        idle: "Idle",
+        recording: "Recording",
+        streaming: "Streaming",
+        motion: "Motion",
+        recently_active: "Recently Active",
+        unavailable: "Unavailable",
+    },
+};
+
+const CARD_STYLES = `
+    <style>
+        .w3-modal {
+            z-index: 1000;
+            display: none;
+            padding-top: 100px;
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0,0,0);
+            background-color: rgba(0,0,0,0.4);
+        }
+        .w3-modal-content {
+            margin: auto;
+            background-color: #fff;
+            position: relative;
+            padding: 0;
+            outline: 0;
+            width: 600px;
+        }
+        .w3-animate-opacity {
+            animation: opac 0.8s;
+        }
+        @keyframes opac {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        ha-card {
+            position: relative;
+            min-height: 48px;
+            overflow: hidden;
+        }
+        .box {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            position: absolute;
+            left: 0;
+            right: 0;
+            background-color: rgba(0, 0, 0, 0.4);
+            padding: 4px 8px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            z-index: 2;
+        }
+        .box-top {
+            top: 0;
+        }
+        .box-bottom {
+            bottom: 0;
+        }
+        .box-align-left {
+            margin-left: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .box-align-right {
+            margin-right: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .box-title {
+            font-weight: 500;
+            font-size: 14px;
+        }
+        .box-status {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        .camera-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #000;
+        }
+        .camera-image {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .stream-video {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* PTZ D-Pad Overlay */
+        .ptz-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: grid;
+            grid-template-columns: repeat(3, 40px);
+            grid-template-rows: repeat(3, 40px);
+            gap: 6px;
+            z-index: 5;
+            transition: opacity 0.25s ease-in-out;
+            pointer-events: auto;
+        }
+        .ptz-hover-mode {
+            opacity: 0;
+        }
+        .camera-container:hover .ptz-hover-mode,
+        .ptz-active {
+            opacity: 1 !important;
+        }
+        .ptz-btn {
+            background-color: rgba(0, 0, 0, 0.55);
+            color: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.15s, transform 0.1s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+        }
+        .ptz-btn:hover {
+            background-color: rgba(3, 169, 244, 0.85);
+        }
+        .ptz-btn:active {
+            transform: scale(0.9);
+            background-color: #0288d1;
+        }
+        .ptz-btn-stop {
+            background-color: rgba(244, 67, 54, 0.65);
+        }
+        .ptz-btn-stop:hover {
+            background-color: rgba(244, 67, 54, 0.9);
+        }
+
+        /* Presets Bar */
+        .preset-bar {
+            position: absolute;
+            bottom: 40px;
+            left: 0;
+            right: 0;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px;
+            padding: 4px 8px;
+            z-index: 4;
+            transition: opacity 0.25s ease-in-out;
+        }
+        .preset-chip {
+            background-color: rgba(0, 0, 0, 0.65);
+            color: #fff;
+            border-radius: 12px;
+            padding: 2px 10px;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            user-select: none;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+            transition: background-color 0.15s;
+        }
+        .preset-chip:hover {
+            background-color: #03a9f4;
+        }
+        .preset-chip:active {
+            transform: scale(0.95);
+        }
+
+        /* Library modal & carousel */
+        .library-gallery {
+            display: flex;
+            overflow-x: auto;
+            gap: 8px;
+            padding: 8px;
+            background: #111;
+        }
+        .library-thumb {
+            width: 120px;
+            flex-shrink: 0;
+            cursor: pointer;
+            border-radius: 4px;
+            overflow: hidden;
+            border: 2px solid transparent;
+            transition: border-color 0.15s;
+        }
+        .library-thumb:hover {
+            border-color: #03a9f4;
+        }
+        .library-thumb img {
+            width: 100%;
+            height: 70px;
+            object-fit: cover;
+            display: block;
+        }
+        .library-thumb-date {
+            font-size: 10px;
+            color: #ccc;
+            text-align: center;
+            padding: 2px;
+            background: rgba(0, 0, 0, 0.8);
+        }
+    </style>
+`;
+
+function _real(value) {
+    return value !== undefined && value !== null
+}
+function _array( config, value = [] ) {
+    if( !config ) {
+        return value
+    }
+    if( typeof config === "string" ) {
+        return config.includes("|") ? config.split("|") : config.split(",")
+    }
+    if( typeof config === "number" ) {
+        return [ config ]
+    }
+    return config
+}
+function _value( config, value = null ) {
+    return config ? config : value
+}
+function _value_int( config, value = 0 ) {
+    return parseInt( _value( config, value ) )
+}
+function _value_float( config, value = 0 ) {
+    return parseFloat( _value( config, value ) )
+}
+function _includes( config, item, value = false ) {
+    if (config) {
+        config.split(",").forEach((citem) => {
+            if (citem === item) {
+                value = true;
+            }
+        });
+    }
+    return value;
+}
+
+/**
+ * Replace all of `from` with `to` and return the new string.
+ *
+ * @param old_string string we are converting
+ * @param from what to replace
+ * @param to what to replace it with
+ * @returns {*} the new string
+ * @private
+ */
+function _replaceAll( old_string, from, to ) {
+    if (!old_string) {
+        return "";
+    }
+    return old_string.split(from).join(to);
+}
+function _mergeArrays( left, right ) {
+    let merged = Object.assign( {}, left );
+    return Object.assign( merged, right )
+}
+function _tsi(title, state, icon ) {
+    return {
+        title: title,
+        state: state,
+        icon:  icon
+    }
+}
+
+const BATTERY_ICONS = {
+    0: "mdi:battery-alert",
+    10: "mdi:battery-10",
+    20: "mdi:battery-20",
+    30: "mdi:battery-30",
+    40: "mdi:battery-40",
+    50: "mdi:battery-50",
+    60: "mdi:battery-60",
+    70: "mdi:battery-70",
+    80: "mdi:battery-80",
+    90: "mdi:battery-90",
+    100: "mdi:battery",
+};
+
+const BATTERY_CHARGING_ICONS = {
+    0: "mdi:battery-charging-outline",
+    10: "mdi:battery-charging-10",
+    20: "mdi:battery-charging-20",
+    30: "mdi:battery-charging-30",
+    40: "mdi:battery-charging-40",
+    50: "mdi:battery-charging-50",
+    60: "mdi:battery-charging-60",
+    70: "mdi:battery-charging-70",
+    80: "mdi:battery-charging-80",
+    90: "mdi:battery-charging-90",
+    100: "mdi:battery-charging",
+};
+
+function batteryLevelIcon(batteryLevel, isBatteryCharging = false) {
+    const batteryValue = Number(batteryLevel);
+    if (isNaN(batteryValue)) {
+        if (batteryLevel === "off") {
+            return "mdi:battery";
+        }
+        if (batteryLevel === "on") {
+            return "mdi:battery-alert";
+        }
+        return "mdi:battery-unknown";
+    }
+
+    if (batteryValue < 0) {
+        return "mdi:battery-unknown";
+    }
+
+    const threshold = batteryValue >= 100 ? 100 : Math.max(0, Math.floor(batteryValue / 10) * 10);
+    if (isBatteryCharging) {
+        return BATTERY_CHARGING_ICONS[threshold];
+    }
+    return BATTERY_ICONS[threshold];
+}
+
+const ImageViewMixin = {
+    buildImageRow(element, sections) {
+        let text_items = ["name", "date", "status"];
+        element.innerHTML = '';
+        _array(sections).forEach((section, index, array) => {
+            let div = document.createElement("div");
+            _array(section).forEach((item) => {
+                if (item === '') {
+                    div.appendChild(this.buildGap());
+                } else if (text_items.includes(item)) {
+                    div.appendChild(this.buildText(item, "camera-"));
+                } else {
+                    div.appendChild(this.buildIcon(item, "camera-", (evt) => {
+                        this.imageIconClicked(evt);
+                    }));
+                }
+            });
+    
+            // Set div alignment
+            if (index === 0) {
+                div.classList.add(`box-align-left`);
+            } else if (index === array.length - 1) {
+                div.classList.add(`box-align-right`);
+            }
+            element.appendChild(div);
+        });
+    },
+
+    imageIconClicked(evt) {
+        const id = evt.target.id;
+        const modified = evt.ctrlKey || evt.shiftKey;
+    
+        if (id.startsWith("camera-motion")) {
+            this.moreInfo(this.cc.motionId);
+        } else if (id.startsWith("camera-sound")) {
+            this.moreInfo(this.cc.soundId);
+        } else if (id.startsWith("camera-battery")) {
+            this.moreInfo(this.cc.batteryId);
+        } else if (id.startsWith("camera-signal")) {
+            this.moreInfo(this.cc.signalId);
+    
+        } else if (id.startsWith("camera-onoff")) {
+            this.toggleCamera();
+        } else if (id.startsWith("camera-library")) {
+            this.openLibrary();
+        } else if (id.startsWith("camera-stream")) {
+            this.showOrStopStream();
+        } else if (id.startsWith("camera-snapshot")) {
+            this.updateSnapshot();
+    
+        } else if (id.startsWith("camera-door2")) {
+            this.moreInfo(this.cc.door2Id);
+        } else if (id.startsWith("camera-lock2")) {
+            if (modified) {
+                this.moreInfo(this.cc.door2LockId);
+            } else {
+                this.toggleLock(this.cc.door2LockId);
+            }
+        } else if (id.startsWith("camera-bell2")) {
+            if (!this.cc.door2BellMuteId || modified) {
+                this.moreInfo(this.cc.door2BellId);
+            } else {
+                this.toggleSwitch(this.cc.door2BellMuteId);
+            }
+        } else if (id.startsWith("camera-door")) {
+            this.moreInfo(this.cc.doorId);
+        } else if (id.startsWith("camera-lock")) {
+            if (modified) {
+                this.moreInfo(this.cc.doorLockId);
+            } else {
+                this.toggleLock(this.cc.doorLockId);
+            }
+        } else if (id.startsWith("camera-bell")) {
+            if (!this.cc.doorBellMuteId || modified) {
+                this.moreInfo(this.cc.doorBellId);
+            } else {
+                this.toggleSwitch(this.cc.doorBellMuteId);
+            }
+        } else if (id.startsWith("camera-light2")) {
+            if (modified) {
+                this.moreInfo(this.cc.light2Id);
+            } else {
+                this.toggleLight(this.cc.light2Id);
+            }
+        } else if (id.startsWith("camera-light")) {
+            if (modified) {
+                this.moreInfo(this.cc.lightId);
+            } else {
+                this.toggleLight(this.cc.lightId);
+            }
+        } else if (id.startsWith("camera-siren")) {
+            if (modified) {
+                this.moreInfo(this.cc.sirenId);
+            } else {
+                this.toggleSiren(this.cc.sirenId);
+            }
+    
+        } else if (id.startsWith("camera-previous")) {
+            this.previousCameraImage();
+        } else if (id.startsWith("camera-next")) {
+            this.nextCameraImage();
+        } else {
+            this._log("something clicked");
+        }
+    },
+
+    setupImageView() {
+        if( this.cc.image_top ) {
+            this.buildImageRow(this._element('top-bar'), this.cc.image_top);
+        }
+        if( this.cc.image_bottom ) {
+            this.buildImageRow(this._element('bottom-bar'), this.cc.image_bottom);
+        }
+
+        const container = this._element('camera-container');
+        if (container) {
+            const existingPtz = container.querySelector('.ptz-overlay');
+            if (existingPtz) existingPtz.remove();
+            const existingPresets = container.querySelector('.preset-bar');
+            if (existingPresets) existingPresets.remove();
+
+            const ptz = this.buildPtzOverlay();
+            if (ptz) container.appendChild(ptz);
+            const presets = this.buildPresetBar();
+            if (presets) container.appendChild(presets);
+        }
+    
+        if( this.gc.isMobile ) {
+            this._hide("camera-previous");
+            this._hide("camera-next");
+        } else {
+            this._set("camera-previous", {title: this._i.status.previous_camera, icon: "mdi:chevron-left", state: "on"});
+            this._set("camera-next", {title: this._i.status.next_camera, icon: "mdi:chevron-right", state: "on"});
+        }
+    },
+
+    setupImageHandlers() {
+        const viewer = this._element("camera-viewer");
+    
+        viewer.addEventListener('error', () => {
+            this.imageFailed();
+        });
+        viewer.addEventListener('click', () => {
+            this.imageClicked();
+        });
+    
+        if( this.gc.isMobile ) {
+            viewer.addEventListener('touchstart', (e) => {
+                this.ls.xDown = e.touches[0].clientX;
+                this.ls.xUp = null;
+            }, { passive: true });
+    
+            viewer.addEventListener('touchmove', (e) => {
+                this.ls.xUp = e.touches[0].clientX;
+            }, { passive: true });
+    
+            viewer.addEventListener('touchend', () => {
+                if( this.ls.xDown && this.ls.xUp ) {
+                    const xDiff = this.ls.xDown - this.ls.xUp;
+                    if( xDiff > this.gc.swipeThreshold ) {
+                        this.nextCameraImage();
+                    } else if( xDiff < (0 - this.gc.swipeThreshold) ) {
+                        this.previousCameraImage();
+                    }
+                }
+            }, { passive: true });
+        }
+    },
+
+    updateImageView() {
+        this._set("camera-name", {text: this.cc.name});
+    
+        for (const item in this.cs.details) {
+            // noinspection JSUnfilteredForInLoop
+            this._set(`camera-${item}`, this.cs.details[item]);
+        }
+    },
+
+    generateImageURL() {
+        const camera = this._getState(this.cc.id,'unknown');
+        
+        // For cast compatibility, use hassUrl()
+        // matches https://github.com/home-assistant/frontend/blob/dev/src/panels/lovelace/components/hui-image.ts
+        this.cs.image = this._hass.hassUrl(camera.attributes.entity_picture + "&t=" + new Date().getTime()); 
+        this.cs.imageBase = camera.attributes.entity_picture;
+    },
+
+    generateImageURLLater(seconds = 2) {
+        setTimeout(() => {
+            this.generateImageURL();
+            this.updateImageView();
+        }, seconds * 1000);
+    },
+
+    showImageView() {
+        if( this.cs.image !== null ) {
+            this._show("camera-viewer");
+            this._hide("broken-image");
+        } else {
+            this._show("broken-image");
+            this._hide("camera-viewer");
+        }
+        this._show('top-bar', !!this.cc.image_top);
+        this._show('bottom-bar', !!this.cc.image_bottom);
+        this.hideRecordingView();
+        this.hideStreamView();
+        this.hideLibraryView();
+        this.hideModal();
+    },
+
+    hideImageView() {
+        this._hide("camera-viewer");
+        this._hide("broken-image");
+        this._hide('top-bar');
+        this._hide('bottom-bar');
+    },
+
+    imageFailed() {
+        this.cs.details.viewer = {title: "", alt: "", src: null};
+        this.cs.image = null;
+        this.updateImageView();
+        this.showImageView();
+        this._log("image load failed");
+    },
+
+    imageClicked() {
+        if ( this.cc.playStream ) {
+            this.playStream();
+        } else {
+            this.playLatestRecording();
+        }
+    },
+
+    setCameraImage( index ) {
+        this._cameraIndex = index;
+        this.setupImageView();
+        this.setupLibraryView();
+        this.updateImageView();
+    },
+
+    nextCameraImage() {
+        this.setCameraImage( this._cameraIndex === (this._cameraCount - 1) ? 0 : (this._cameraIndex + 1) );
+    },
+
+    previousCameraImage() {
+        this.setCameraImage( this._cameraIndex === 0 ? (this._cameraCount - 1) : (this._cameraIndex - 1) );
+    },
+
+    toggleCamera( ) {
+        if ( this.cs.state === 'off' ) {
+            this._hass.callService( 'camera','turn_on', { entity_id: this.cc.id } );
+        } else {
+            this._hass.callService( 'camera','turn_off', { entity_id: this.cc.id } );
+        }
+    },
+
+    toggleLock( id ) {
+        if ( this._getState(id,'locked').state === 'locked' ) {
+            this._hass.callService( 'lock','unlock', { entity_id:id } );
+        } else {
+            this._hass.callService( 'lock','lock', { entity_id:id } );
+        }
+    },
+
+    toggleLight( id ) {
+        if ( this._getState(id,'on').state === 'on' ) {
+            this._hass.callService( 'light','turn_off', { entity_id:id } );
+        } else {
+            this._hass.callService( 'light','turn_on', { entity_id:id } );
+        }
+    },
+
+    toggleSiren( id ) {
+        if ( !id ) return;
+        if ( this._getState(id,'on').state === 'on' ) {
+            this._hass.callService( 'siren','turn_off', { entity_id:id } );
+        } else {
+            this._hass.callService( 'siren','turn_on', { entity_id:id } );
+        }
+    },
+
+    toggleSwitch( id ) {
+        if ( this._getState(id,'on').state === 'on' ) {
+            this._hass.callService( 'switch','turn_off', { entity_id:id } );
+        } else {
+            this._hass.callService( 'switch','turn_on', { entity_id:id } );
+        }
+    },
+
+};
+
+const LibraryViewMixin = {
+    buildLibraryIconDiv(items, prefix = "") {
+        let div = document.createElement("div");
+        items.forEach((item) => {
+            div.appendChild(this.buildIcon(item, prefix, (evt) => {
+                this.libraryIconClicked(evt);
+            }));
+        });
+        return div;
+    },
+
+    buildLibraryControl(element, prefix) {
+        element.innerHTML = '';
+        element.appendChild(this.buildLibraryIconDiv(["library-control-first", "library-control-previous"], prefix));
+        element.appendChild(this.buildLibraryIconDiv(["library-control-resize", "library-control-close"], prefix));
+        element.appendChild(this.buildLibraryIconDiv(["library-control-next", "library-control-last"], prefix));
+    },
+
+    libraryIconClicked(evt) {
+        const id = evt.target.id;
+    
+        if(id.startsWith("library-control-close")) {
+            this.closeLibrary();
+        } else if(id.startsWith("library-control-resize")) {
+            this.resizeLibrary();
+        } else if(id.startsWith("library-control-first")) {
+            this.firstLibraryPage();
+        } else if(id.startsWith("library-control-previous")) {
+            this.previousLibraryPage();
+        } else if(id.startsWith("library-control-next")) {
+            this.nextLibraryPage();
+        } else if(id.startsWith("library-control-last")) {
+            this.lastLibraryPage();
+        }
+    },
+
+    setupLibraryView() {
+        this.buildLibraryControl(this._element('library-controls'), "");
+        // TODO maybe modal?
+    },
+
+    setupLibraryHandlers() {
+        // rudimentary swipe support
+        const viewer = this._element("library-viewer");
+    
+        if( this.gc.isMobile ) {
+            viewer.addEventListener('touchstart', (e) => {
+                this.ls.xDown = e.touches[0].clientX;
+                this.ls.xUp = null;
+            }, { passive: true });
+    
+            viewer.addEventListener('touchmove', (e) => {
+                this.ls.xUp = e.touches[0].clientX;
+            }, { passive: true });
+    
+            viewer.addEventListener('touchend', () => {
+                if( this.ls.xDown && this.ls.xUp ) {
+                    const xDiff = this.ls.xDown - this.ls.xUp;
+                    if( xDiff > this.gc.swipeThreshold ) {
+                        this.nextLibraryPage();
+                    } else if( xDiff < (0 - this.gc.swipeThreshold) ) {
+                        this.previousLibraryPage();
+                    }
+                }
+            }, { passive: true });
+        }
+    },
+
+    _updateLibraryHTML() {
+        // update library state to reflect the new layout
+        this.gs.librarySize = this.lc.sizes[this.ls.sizeIndex];
+        this.ls.gridCount = this.gs.librarySize * this.gs.librarySize;
+    
+        let grid = document.createElement("div");
+        grid.style.display = "grid";
+        grid.style['grid-template-columns'] = `repeat(${this.gs.librarySize},1fr)`;
+        grid.style['grid-template-rows'] = `repeat(${this.gs.librarySize},1fr)`;
+        grid.style['grid-gap'] = '1px';
+        grid.style.padding= '2px';
+    
+        for( let i = 0; i < this.gs.librarySize * this.gs.librarySize; ++i ) {
+    
+            // The thumbnail element.
+            let img = document.createElement("img");
+            img.id = this._id(`library-${i}`);
+            img.style.width = "100%";
+            img.style.height = "100%";
+            img.style.objectFit = "cover";
+            img.addEventListener("click", () => { this.playRecording(i); } );
+            img.addEventListener("mouseover", () => { this.showDownloadIcon(i); } );
+            img.addEventListener("mouseout", () => { this.hideDownloadIcon(i); } );
+    
+            // The region highlight element
+            let box = document.createElement("div");
+            box.id = this._id(`library-box-${i}`);
+            box.style.width = "100%";
+            box.style.height = "100%";
+            box.style.position = "absolute";
+            box.style.top = "0";
+            box.addEventListener("click", () => { this.playRecording(i); } );
+            box.addEventListener("mouseover", () => { this.showDownloadIcon(i); } );
+            box.addEventListener("mouseout", () => { this.hideDownloadIcon(i); } );
+    
+            // The download icon
+            let a = document.createElement("a");
+            a.id = this._id(`library-a-${i}`);
+            a.style.position = "absolute";
+            a.style.left = `2%`;
+            a.style.top  = `5%`;
+            a.setAttribute("download","");
+            a.innerHTML = `<ha-icon class="aarlo-icon-small" icon="mdi:download" style="color: white;"></ha-icon>`;
+    
+            const column = Math.floor((i % this.gs.librarySize) + 1);
+            const row = Math.floor((i / this.gs.librarySize) + 1);
+            let div = document.createElement("div");
+            div.style.position= 'relative';
+            div.style.gridColumn = `${column}`;
+            div.style.gridRow    = `${row}`;
+            div.appendChild(img);
+            div.appendChild(box);
+            div.appendChild(a);
+            grid.appendChild(div);
+        }
+    
+        // replace.
+        let container = this._element('library-viewer');
+        container.innerHTML = '';
+        container.appendChild(grid);
+    },
+
+    _updateLibraryView() {
+        // Massage offset so it fits in library.
+        if( this.ls.offset + this.ls.gridCount > this.ls.recordings.length ) {
+            this.ls.offset = Math.max(this.ls.recordings.length - this.ls.gridCount, 0);
+        } else if( this.ls.offset < 0 ) {
+            this.ls.offset = 0;
+        }
+    
+        let i = 0;
+        let j= this.ls.offset;
+        const show_triggers = this.lc.regions.includes(this.gs.librarySize);
+        const last = Math.min(j + this.ls.gridCount, this.ls.recordings.length);
+        for( ; j < last; i++, j++ ) {
+            const id = `library-${i}`;
+            const bid = `library-box-${i}`;
+            const video = this.ls.recordings[j];
+            let captured_text = `${this._i.library.captured}: ${video.created_at_pretty}`;
+            if( this.lc.duration ) {
+                const minutes = Math.floor(video.duration / 60);
+                const seconds = video.duration % 60;
+                captured_text += `\n${this._i.library.duration}: ${minutes}:${seconds.toString().padStart(2,'0')}`;
+            }
+            if ( video.trigger && video.trigger !== '' ) {
+                captured_text += `\n${this._i.library.reason}: ${this._i.trigger[video.trigger.toLowerCase()]}`;
+            }
+            this._set( id,{title: captured_text, alt: captured_text, src: video.thumbnail} );
+            this._show( id );
+    
+            // highlight is on at this level and we have something?
+            if( show_triggers && video.trigger !== null && video.trigger_region !== null ) {
+                const coords = video.trigger_region.split(",");
+    
+                let box = this._element( bid );
+                box.style.left = `${parseFloat(coords[0]) * 100}%`;
+                box.style.top = `${parseFloat(coords[1]) * 100}%`;
+                box.style.width = `${(parseFloat(coords[2]) - parseFloat(coords[0])) * 100}%`;
+                box.style.height = `${(parseFloat(coords[3]) - parseFloat(coords[1])) * 100}%`;
+                box.style.borderStyle = "solid";
+                box.style.borderWidth = "thin";
+                box.style.borderColor = video.trigger in this.lc.colors ?
+                                               this.lc.colors[video.trigger] : "cyan";
+                this._set( bid,{title: captured_text, alt: captured_text } );
+                this._show( bid );
+            } else {
+                this._hide( bid );
+            }
+    
+            // download icon
+            const aid = `library-a-${i}`;
+            this._element( aid ).href = video.url;
+            this._hide( aid );
+    
+        }
+        for( ; i < this.ls.gridCount; i++ ) {
+            this._hide(`library-${i}`);
+            this._hide(`library-box-${i}`);
+            this._hide(`library-a-${i}`);
+        }
+    
+        // save state
+        this.ls.lastOffset = this.ls.offset;
+        this.gs.libraryCamera = this._cameraIndex;
+    
+        const not_at_start = this.ls.offset !== 0;
+        this._set( "library-control-first",{
+            title: not_at_start ? this._i.library.first_page : "",
+            icon: 'mdi:page-first',
+            state: not_at_start ? "on" : "off"
+        });
+        this._set( "library-control-previous",{
+            title: not_at_start ? this._i.library.previous_page : "",
+            icon: 'mdi:chevron-left',
+            state: not_at_start ? "on" : "off"
+        });
+    
+        this._set( "library-control-resize",{ title: this._i.library.next_size, icon: 'mdi:resize', state: "on" });
+        this._set( "library-control-close",{ title: this._i.library.close, icon: 'mdi:close', state: "on" });
+    
+        const not_at_end = this.ls.offset + this.ls.gridCount < this.ls.recordings.length;
+        this._set( "library-control-next",{
+            title: not_at_end ? this._i.library.next_page : "",
+            icon: 'mdi:chevron-right',
+            state: not_at_end ? "on" : "off"
+        });
+        this._set( "library-control-last",{
+            title: not_at_end ? this._i.library.last_page : "",
+            icon: 'mdi:page-last',
+            state: not_at_end ? "on" : "off"
+        });
+    },
+
+    updateLibraryView() {
+        this._show('library-control-resize',this.lc.sizes.length > 1 );
+    
+        // If camera index has changed then load library
+        if ( this.gs.libraryCamera !== this._cameraIndex ) {
+            this._log( `library-camera-change` );
+            this._updateLibraryHTML();
+            this._updateLibraryView();
+    
+        // Resized? Rebuild grid and force reload of images.
+        } else if ( this.gs.librarySize !== this.lc.sizes[this.ls.sizeIndex] ) {
+            this._log( `library-size-change` );
+            this._updateLibraryHTML();
+            this._updateLibraryView();
+    
+        // If offset has changed then reload images
+        } else if ( this.ls.lastOffset !== this.ls.offset ) {
+            this._log( `library-view-update` );
+            this._updateLibraryView();
+        } 
+    },
+
+    showLibraryView() {
+        this._show("library-viewer");
+        this._show("library-controls");
+        this.hideRecordingView();
+        this.hideStreamView();
+        this.hideImageView();
+        this.hideModal();
+    },
+
+    hideLibraryView() {
+        this._hide("library-viewer");
+        this._hide("library-controls");
+    },
+
+    mergeLibraries() {
+        if( !this.gc.blendedMode ) {
+            return
+        }
+        let recordings = this._ls[0].recordings.slice();
+        for( let i = 1; i < this._cameraCount; i++ ) {
+            let j = 0;
+            let k = 0;
+            while( k < this._ls[i].recordings.length ) {
+                if( j === recordings.length ) {
+                    recordings.push( this._ls[i].recordings[k] );
+                    k++;
+                } else if( recordings[j].created_at < this._ls[i].recordings[k].created_at ) {
+                    recordings.splice( j, 0, this._ls[i].recordings[k] );
+                    k++;
+                }
+                j++;
+            }
+        }
+        this._ls[this._cameraCount].recordings = recordings;
+    },
+
+    openLibrary() {
+        if( this.ls.recordings && this.ls.recordings.length > 0 ) {
+            this.ls.showing = true;
+            this.getModalDimensions();
+            this.updateLibraryView();
+            this.showLibraryView();
+        }
+    },
+
+    firstLibraryPage() {
+        this.ls.offset = 0;
+        this.updateLibraryView();
+    },
+
+    previousLibraryPage() {
+        this.ls.offset = Math.max(this.ls.offset - this.ls.gridCount, 0);
+        this.updateLibraryView();
+    },
+
+    nextLibraryPage() {
+        const last = Math.max(this.ls.recordings.length - this.ls.gridCount, 0);
+        this.ls.offset = Math.min(this.ls.offset + this.ls.gridCount, last);
+        this.updateLibraryView();
+    },
+
+    lastLibraryPage() {
+        this.ls.offset = Math.max(this.ls.recordings.length - this.ls.gridCount, 0);
+        this.updateLibraryView();
+    },
+
+    resizeLibrary() {
+        this.ls.sizeIndex += 1;
+        if( this.ls.sizeIndex === this.lc.sizes.length ) {
+            this.ls.sizeIndex = 0;
+        }
+        this.updateLibraryView();
+    },
+
+    closeLibrary() {
+        this.ls.showing = false;
+        this.stopRecording();
+        this.showImageView();
+    },
+
+    showDownloadIcon(index) {
+        if( this.lc.download ) {
+            this._show(`library-a-${index}`);
+        }
+    },
+
+    hideDownloadIcon(index) {
+        this._hide(`library-a-${index}`);
+    },
+
+};
+
+const StreamViewMixin = {
+    buildVideoIconDiv(items, prefix) {
+        let div = document.createElement("div");
+        items.forEach((item) => {
+            div.appendChild(this.buildIcon(item, prefix, (evt) => {
+                this.videoIconClicked(evt);
+            }));
+        });
+        return div;
+    },
+
+    buildVideoSeekDiv(prefix) {
+        let slider = document.createElement('input');
+        slider.type = 'range';
+        slider.min = "1";
+        slider.max = "100";
+        slider.value = "0";
+        slider.classList.add('slider');
+        slider.id = this._id(`${prefix}video-seek`);
+    
+        let div = document.createElement("div");
+        div.appendChild(slider);
+        return div
+    },
+
+    buildVideoControl(element, prefix) {
+        element.innerHTML = '';
+        element.appendChild(this.buildVideoIconDiv(["video-door-lock", "video-door2-lock",
+                        "video-light-on", "video-light2-on", "video-siren-on", "video-toggle-sound", "video-play-pause", "video-stop"],
+                        prefix));
+        element.appendChild(this.buildVideoSeekDiv(prefix));
+        element.appendChild(this.buildVideoIconDiv(["video-full-screen"], prefix));
+    },
+
+    videoIconClicked(evt) {
+        const id = evt.target.id;
+    
+        if (id.includes("video-play-pause")) {
+            this.controlPlayPause();
+        } else if (id.includes("video-toggle-sound")) {
+            this.controlToggleSound();
+        } else if (id.includes("video-stop")) {
+            this.controlStop();
+        } else if (id.includes("video-door-lock")) {
+            this.toggleLock(this.cc.doorLockId);
+        } else if (id.includes("video-door2-lock")) {
+            this.toggleLock(this.cc.door2LockId);
+        } else if (id.includes("video-light-on")) {
+            this.toggleLight(this.cc.lightId);
+        } else if (id.includes("video-light2-on")) {
+            this.toggleLight(this.cc.light2Id);
+        } else if (id.includes("video-siren-on")) {
+            this.toggleSiren(this.cc.sirenId);
+        } else if (id.includes("video-full-screen")) {
+            this.controlFullScreen();
+        }
+    },
+
+    setupVideoView() {
+        // this.buildVideoControls()
+        this.buildVideoControl(this._element('video-controls'), "");
+        this.buildVideoControl(this._element('modal-video-controls'), "modal-");
+    },
+
+    setupVideoHandlers() {
+        if (!this._keydownHandler) {
+            this._keydownHandler = (e) => {
+                if (e.key === 'Escape' && this.gs && this.gs.isPseudoFullScreen) {
+                    this.exitPseudoFullScreen();
+                }
+            };
+            window.addEventListener('keydown', this._keydownHandler);
+        }
+        if (!this._fullscreenChangeHandler) {
+            this._fullscreenChangeHandler = () => {
+                this._updateFullScreenButton();
+                if (!this._isFullScreen()) {
+                    this.exitPseudoFullScreen();
+                } else {
+                    this.showVideoControls(4);
+                }
+            };
+            document.addEventListener('fullscreenchange', this._fullscreenChangeHandler);
+            document.addEventListener('webkitfullscreenchange', this._fullscreenChangeHandler);
+        }
+        const players = [this._element( "video-player" ), this._element( "modal-video-player" )];
+        players.forEach((player) => {
+            if (!player) return;
+            player.addEventListener( 'ended', (_evt) => {
+                this.videoEnded();
+            });
+            player.addEventListener( 'loadedmetadata', (evt) => {
+                this.setUpSeekBar();
+                this.startVideo( evt.target );
+                this.showVideoControls(this._defaultControlsTimeout());
+            });
+        });
+
+        const interactionTargets = [
+            this._element("video-player"),
+            this._element("modal-video-player"),
+            this._element("aarlo-wrapper"),
+            this._element("modal-video-wrapper"),
+        ];
+        interactionTargets.forEach((target) => {
+            if (!target) return;
+            target.addEventListener('click', (evt) => {
+                this.handleVideoInteraction(evt);
+            });
+            target.addEventListener('touchend', (evt) => {
+                this.handleVideoInteraction(evt);
+            }, { passive: true });
+            target.addEventListener('mousemove', (evt) => {
+                this.videoMouseEvent(evt);
+            });
+        });
+
+        const controlBars = [
+            this._element("video-controls"),
+            this._element("modal-video-controls"),
+        ];
+        controlBars.forEach((bar) => {
+            if (!bar) return;
+            ['pointerdown', 'touchstart', 'mousemove'].forEach((evType) => {
+                bar.addEventListener(evType, () => {
+                    this.showVideoControls(this._defaultControlsTimeout());
+                }, { passive: true });
+            });
+        });
+    },
+
+    setupRecordingPlayer() {
+        this._mset( 'video-player',{src: this.gs.recording, poster: this.gs.poster} );
+        this._mshow("video-seek");
+        this._mshow("video-play-pause");
+        this._mhide("video-door-lock");
+        this._mhide("video-door2-lock");
+        this._mhide("video-light-on");
+        this._mhide("video-light2-on");
+        this._mhide("video-siren-on");
+    },
+
+    _isFullScreen() {
+        const isNativeFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+        const isPseudoFs = !!(this.gs && this.gs.isPseudoFullScreen);
+        return isNativeFs || isPseudoFs;
+    },
+
+    _updateFullScreenButton() {
+        const isFs = this._isFullScreen();
+        const fsTitle = isFs
+            ? (this._i.video.exit_fullscreen || "exit full screen")
+            : this._i.video.fullscreen;
+        const fsIcon = isFs ? "mdi:fullscreen-exit" : "mdi:fullscreen";
+        this._mset("video-full-screen", { title: fsTitle, icon: fsIcon });
+    },
+
+    updateRecordingView() {
+        this._mset("video-stop",{title: this._i.video.stop, icon: "mdi:stop"});
+        this._updateFullScreenButton();
+    
+        let video = this._melement( 'video-player' );
+        if( video.paused ) {
+            this._mset("video-play-pause", {title: this._i.video.play, icon:"mdi:play"});
+        } else {
+            this._mset("video-play-pause", {title: this._i.video.pause, icon:"mdi:pause"});
+        }
+        if( video.muted ) {
+            this._mset("video-toggle-sound", {icon:"mdi:volume-off"});
+        } else {
+            this._mset("video-toggle-sound", {icon:"mdi:volume-high"});
+        }
+    },
+
+    showRecordingView() {
+        this.hideStreamView();
+        this._mshow("video-player");
+        this._mshow("video-controls");
+        this.showModal();
+        this.hideLibraryView();
+        this.hideImageView();
+    },
+
+    hideRecordingView() {
+        this._mhide("video-player");
+        this._mhide("video-controls");
+        this.hideModal();
+    },
+
+    showRecording() {
+        this.setupRecordingPlayer();
+        this.updateRecordingView();
+        this.showRecordingView();
+    },
+
+    setMPEGStreamElementData() {
+        const video = this._melement('video-player');
+        const et = this._findEgressToken( this.gs.stream );
+    
+        this.gs.dash = dashjs.MediaPlayer().create();
+        this.gs.dash.extend("RequestModifier", () => {
+            return {
+                modifyRequestHeader: function (xhr) {
+                    xhr.setRequestHeader('Egress-Token',et);
+                    return xhr;
+                }
+            };
+        }, true);
+        this.gs.dash.initialize( video, this.gs.stream, true );
+    },
+
+    destroyMPEGStream() {
+        if(this.gs.hls) {
+            this.gs.hls.stopLoad();
+            this.gs.hls.destroy();
+            this.gs.hls = null;
+        }
+    },
+
+    setHLSStreamElementData() {
+        const video = this._melement('video-player');
+        if (!video) return;
+    
+        if (window.Hls && Hls.isSupported()) {
+            this.gs.hls = new Hls();
+            this.gs.hls.attachMedia(video);
+            this.gs.hls.on(Hls.Events.MEDIA_ATTACHED, () => {
+                this.gs.hls.loadSource(this.gs.stream);
+                this.gs.hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    this.startVideo(video);
+                });
+            });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = this.gs.stream;
+            video.addEventListener('loadedmetadata', () => {
+                this.startVideo(video);
+            }, { once: true });
+        }
+    },
+
+
+    destroyWebRTCStream() {
+        if (this.gs.webrtcUnsub) {
+            try {
+                this.gs.webrtcUnsub();
+            } catch (e) {
+                this._log(e);
+            }
+            this.gs.webrtcUnsub = null;
+        }
+        if (this.gs.pc) {
+            try {
+                this.gs.pc.close();
+            } catch (e) {
+                this._log(e);
+            }
+            this.gs.pc = null;
+        }
+        const video = this._melement('video-player');
+        if (video && video.srcObject) {
+            video.srcObject = null;
+        }
+    },
+
+    async isWebRTC(cc) {
+        if (!cc) return false;
+        if (cc.webrtcPlay) return true;
+        if (cc.arloPlay || cc.haPlay) return false;
+
+        if (this.cs && this.cs.frontendStreamTypes) {
+            return this.cs.frontendStreamTypes.includes("web_rtc");
+        }
+
+        if (this._hass && this._hass.callWS) {
+            try {
+                const caps = await this._hass.callWS({
+                    type: "camera/capabilities",
+                    entity_id: cc.id,
+                });
+                if (caps && Array.isArray(caps.frontend_stream_types)) {
+                    if (this.cs) {
+                        this.cs.frontendStreamTypes = caps.frontend_stream_types;
+                    }
+                    return caps.frontend_stream_types.includes("web_rtc");
+                }
+            } catch (e) {
+                this._log(`Failed to fetch camera capabilities: ${e}`);
+            }
+        }
+
+        const state = this._hass && this._hass.states && this._hass.states[cc.id];
+        const attrs = (state && state.attributes) || {};
+        return Boolean(attrs.sip_streaming || attrs.frontend_stream_type === "web_rtc");
+    },
+
+    async startWebRTCStream() {
+        this._log(`Starting WebRTC stream for ${this.cc.id}`);
+        try {
+            const video = this._melement('video-player');
+            if (video) {
+                video.removeAttribute('src');
+                video.muted = this.gs.isMuted;
+            }
+
+            const clientConfig = await this._hass.callWS({
+                type: "camera/webrtc/get_client_config",
+                entity_id: this.cc.id,
+            });
+
+            const pcConfig = (clientConfig && clientConfig.configuration) || {};
+            const pc = new RTCPeerConnection(pcConfig);
+            this.gs.pc = pc;
+
+            pc.addTransceiver("audio", { direction: "recvonly" });
+            pc.addTransceiver("video", { direction: "recvonly" });
+
+            pc.ontrack = (event) => {
+                const v = this._melement('video-player');
+                if (v && event.streams && event.streams[0]) {
+                    v.srcObject = event.streams[0];
+                    this.startVideo(v);
+                }
+            };
+
+            const candidatesQueue = [];
+            let sessionId = null;
+
+            pc.onicecandidate = (event) => {
+                if (event.candidate) {
+                    const candData = event.candidate.toJSON ? event.candidate.toJSON() : event.candidate;
+                    if (sessionId) {
+                        this._hass.callWS({
+                            type: "camera/webrtc/candidate",
+                            entity_id: this.cc.id,
+                            session_id: sessionId,
+                            candidate: candData,
+                        }).catch(() => {});
+                    } else {
+                        candidatesQueue.push(candData);
+                    }
+                }
+            };
+
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+
+            // Brief wait (50ms) to allow initial host candidates to gather into localDescription
+            await new Promise((r) => setTimeout(r, 50));
+
+            const offerSdp = (pc.localDescription && pc.localDescription.sdp) || offer.sdp;
+
+            const unsub = await this._hass.connection.subscribeMessage(
+                async (msg) => {
+                    if (msg.type === "session") {
+                        sessionId = msg.session_id;
+                        while (candidatesQueue.length > 0) {
+                            const c = candidatesQueue.shift();
+                            this._hass.callWS({
+                                type: "camera/webrtc/candidate",
+                                entity_id: this.cc.id,
+                                session_id: sessionId,
+                                candidate: c,
+                            }).catch(() => {});
+                        }
+                    } else if (msg.type === "answer") {
+                        if (pc.signalingState !== "closed") {
+                            await pc.setRemoteDescription({
+                                type: "answer",
+                                sdp: msg.answer,
+                            });
+                        }
+                    } else if (msg.type === "error") {
+                        this._log(`WebRTC error: ${msg.message}`);
+                        this.stopStream();
+                    }
+                },
+                {
+                    type: "camera/webrtc/offer",
+                    entity_id: this.cc.id,
+                    offer: offerSdp,
+                }
+            );
+            this.gs.webrtcUnsub = unsub;
+
+            this.gs.viewer = this.getViewType(this.cc);
+            this.gs.stream = "webrtc";
+            this.gs.poster = this.cs.image;
+            this.showStream();
+        } catch (err) {
+            this._log(`startWebRTCStream failed: ${err}`);
+            this.destroyWebRTCStream();
+            this.gs.stream = null;
+        }
+    },
+
+    destroyHLSStream() {
+        if(this.gs.dash) {
+            this.gs.dash.reset();
+            this.gs.dash = null;
+        }
+    },
+
+    setupStreamPlayer() {
+        if (this.gs.stream === "webrtc") ; else if (this.gs.stream && this.gs.stream.includes('egressToken')) {
+            this.setMPEGStreamElementData();
+        } else {
+            this.setHLSStreamElementData();
+        }
+    
+        this._mhide("video-play-pause");
+        this._mhide("video-seek");
+        this._mshow("video-door-lock", this.cc.doorLockId !== null);
+        this._mshow("video-door2-lock", this.cc.door2LockId !== null);
+        this._mshow("video-light-on", this.cc.lightId !== null);
+        this._mshow("video-light2-on", this.cc.light2Id !== null);
+        this._mshow("video-siren-on", this.cc.sirenId !== null);
+        this.showVideoControls(4);
+    
+        this._mset('video-player', {poster: this.gs.poster});
+    },
+
+    updateStreamView() {
+        this._mset("video-stop",{title: this._i.video.stop, icon: "mdi:stop"});
+        this._updateFullScreenButton();
+    
+        // Autostart?
+        if ( this.gs.stream === null ) {
+            if( this.cs.autoPlay && this.cs.autoPlayTimer === null ) {
+                this.cs.autoPlayTimer = setTimeout( () => {
+                    this.playStream();
+                },5 * 1000 );
+            }
+            return
+        }
+    
+        this._mset("video-door-lock", this.cs.details.lock);
+        this._mset("video-door2-lock", this.cs.details.lock2);
+        this._mset("video-light-on", this.cs.details.light);
+        this._mset("video-light2-on", this.cs.details.light2);
+        this._mset("video-siren-on", this.cs.details.siren);
+    
+        if( this._melement( 'video-player' ).muted ) {
+            this._mset("video-toggle-sound", {icon:"mdi:volume-off"});
+        } else {
+            this._mset("video-toggle-sound", {icon:"mdi:volume-high"});
+        }
+    },
+
+    showStreamView() {
+        this.hideRecordingView();
+        this._mshow("video-player");
+        this._mshow("video-controls");
+        this.showModal();
+        this.hideLibraryView();
+        this.hideImageView();
+    },
+
+    hideStreamView() {
+        this._mhide("video-player");
+        this._mhide("video-controls");
+        this.hideModal();
+    },
+
+    showStream() {
+        this.setupStreamPlayer();
+        this.updateStreamView();
+        this.showStreamView();
+    },
+
+    updateVideoOrStreamView() {
+        if( this.gs.stream !== null ) {
+            this.updateStreamView();
+        } else if( this.gs.recording !== null ) {
+            this.updateRecordingView();
+        }
+    },
+
+    pauseVideo( video ) {
+        video.pause();
+        this.updateVideoOrStreamView();
+    },
+
+    startVideo( video ) {
+        let promise = video.play();
+        if( promise !== undefined ) {
+            promise.then( () => {
+                this.updateVideoOrStreamView();
+            }).catch( () => {
+                this.updateVideoOrStreamView();
+            });
+        } else {
+            this.updateVideoOrStreamView();
+        }
+    },
+
+    getViewType( c ) {
+        if( c.smartPlayer ) {
+            return this.gc.isMobile ? "" : "modal"
+        } else if( c.modalPlayer ) {
+            return "modal"
+        } 
+        return ""
+    },
+
+    async playStream() {
+        this.cs.autoPlayTimer = null;
+        if (this.gs.stream === null) {
+            if (this.cc.autoPlay) {
+                this.cs.autoPlay = this.cc.autoPlay;
+            }
+            const video = this._melement('video-player');
+            if (video) {
+                video.muted = this.gs.isMuted;
+            }
+
+            const useWebRTC = await this.isWebRTC(this.cc);
+            if (useWebRTC) {
+                this.startWebRTCStream();
+            } else {
+                this.wsStartStream()
+                    .then((stream) => {
+                        this.gs.viewer = this.getViewType(this.cc);
+                        this.gs.stream = stream.url;
+                        this.gs.poster = this.cs.image;
+                        this.showStream();
+                    })
+                    .catch((e) => {
+                        this._log(e);
+                    });
+            }
+        } else {
+            this.showStream();
+        }
+    },
+
+    stopStream() {
+        this.exitAllFullScreen();
+        if (this.gs.stream === "webrtc") {
+            this._log(`Stopping WebRTC stream for ${this.cc.id}`);
+        }
+        this.resetView();
+        const video = this._melement('video-player');
+        if (video) {
+            video.pause();
+            if (video.srcObject) {
+                video.srcObject = null;
+            }
+        }
+        this.cs.autoPlay = false;
+        this.gs.stream = null;
+        this.destroyWebRTCStream();
+        this.destroyMPEGStream();
+        this.destroyHLSStream();
+        this.wsStopStream()
+            .then()
+            .catch((e) => {
+                this._log(e);
+            });
+    },
+
+    showOrStopStream() {
+        if (this.gs.stream !== null) {
+            this.stopStream();
+        } else {
+            this.gs.viewer = this.getViewType( this.cc );
+            this.playStream();
+        }
+    },
+
+    playRecording(index) {
+        if (this.gs.recording === null) {
+            index += this.ls.offset;
+            if (this.ls.recordings && index < this.ls.recordings.length) {
+                this.destroyWebRTCStream();
+                this.destroyMPEGStream();
+                this.destroyHLSStream();
+                const video = this._melement('video-player');
+                if (video) {
+                    video.muted = this.gs.isMuted;
+                    video.srcObject = null;
+                }
+                this.gs.viewer = this.getViewType(this.lc);
+                this.gs.recording = this.ls.recordings[index].url;
+                this.gs.poster = this.ls.recordings[index].thumbnail;
+                this.showRecording();
+            }
+        }
+    },
+
+    playLatestRecording() {
+        this.destroyWebRTCStream();
+        this.destroyMPEGStream();
+        this.destroyHLSStream();
+        const video = this._melement('video-player');
+        if (video) {
+            video.muted = this.gs.isMuted;
+            video.srcObject = null;
+        }
+        this.gs.viewer = this.getViewType(this.cc);
+        this.gs.recording = this.cs.lastRecording;
+        this.gs.poster = this.cs.image;
+        this.showRecording();
+    },
+
+    stopRecording() {
+        this.exitAllFullScreen();
+        if (this.gs.recording) {
+            const video = this._melement('video-player');
+            if (video) {
+                this.pauseVideo(video);
+                video.removeAttribute('src');
+            }
+            this.hideModal();
+            this.resetView();
+            this.gs.recording = null;
+        }
+    },
+
+    videoEnded() {
+        this.exitAllFullScreen();
+        this.stopRecording();
+        this.stopStream();
+    },
+
+    _defaultControlsTimeout() {
+        return (this.gc.isMobile || this.gc.isApple || this._isFullScreen()) ? 4 : 2;
+    },
+
+    handleVideoInteraction(evt) {
+        if (this.gs.stream === null && this.gs.recording === null) {
+            return;
+        }
+
+        const controls = this._melement('video-controls');
+        if (controls && controls.contains(evt.target)) {
+            return;
+        }
+
+        const now = Date.now();
+        if (this._lastInteractionTime && (now - this._lastInteractionTime < 350)) {
+            return;
+        }
+        this._lastInteractionTime = now;
+
+        this.videoClicked(evt);
+    },
+
+    videoClicked(evt) {
+        if ( this._misHidden("video-controls") ) {
+            this.showVideoControls(this._defaultControlsTimeout());
+        } else {
+            this.hideVideoControls();
+        }
+    },
+
+    videoMouseEvent(evt) {
+        if (this.gs.stream === null && this.gs.recording === null) {
+            return;
+        }
+        if (evt && evt.pointerType === 'touch') {
+            return;
+        }
+        this.showVideoControls(this._defaultControlsTimeout());
+    },
+
+    controlStop() {
+        this.exitAllFullScreen();
+        this.stopRecording();
+        this.stopStream();
+    },
+
+    controlPlayPause( ) {
+        let video = this._melement( 'video-player' );
+        if( video.paused ) {
+            this.startVideo( video );
+        } else {
+            this.pauseVideo( video );
+        }
+    },
+
+    controlToggleSound( ) {
+        let video = this._melement('video-player');
+        video.muted = !video.muted;
+        this.gs.isMuted = video.muted;
+        this.updateVideoOrStreamView();
+    },
+
+    controlFullScreen() {
+        // If currently in native fullscreen, exit it
+        if (document.fullscreenElement || document.webkitFullscreenElement) {
+            if (document.exitFullscreen) {
+                document.exitFullscreen().catch(() => {});
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            }
+            return;
+        }
+
+        // If currently in pseudo-fullscreen, exit it
+        if (this.gs && this.gs.isPseudoFullScreen) {
+            this.exitPseudoFullScreen();
+            return;
+        }
+
+        // On iOS: use pseudo-fullscreen (iOS WebKit blocks Fullscreen API on iPhone)
+        if (this.gc.isApple) {
+            this.togglePseudoFullScreen();
+            return;
+        }
+
+        // On desktop: request native fullscreen on the card container
+        const targetElement = this.gs.viewer === 'modal'
+            ? this._element('modal-viewer')
+            : this.querySelector('ha-card');
+
+        if (targetElement && targetElement.requestFullscreen) {
+            targetElement.requestFullscreen().catch((err) => {
+                this._log(`Native requestFullscreen failed, falling back to pseudo-fullscreen: ${err}`);
+                this.togglePseudoFullScreen();
+            });
+        } else if (targetElement && targetElement.webkitRequestFullscreen) {
+            try {
+                targetElement.webkitRequestFullscreen();
+            } catch (err) {
+                this.togglePseudoFullScreen();
+            }
+        } else {
+            this.togglePseudoFullScreen();
+        }
+    },
+
+    togglePseudoFullScreen() {
+        if (!this.gs) {
+            this.gs = {};
+        }
+        this.gs.isPseudoFullScreen = !this.gs.isPseudoFullScreen;
+        const isFs = this.gs.isPseudoFullScreen;
+
+        const haCard = this.querySelector('ha-card');
+        const modalViewer = this._element('modal-viewer');
+
+        if (this.gs.viewer === 'modal') {
+            if (modalViewer) {
+                modalViewer.classList.toggle('aarlo-pseudo-fullscreen', isFs);
+            }
+        } else {
+            if (haCard) {
+                haCard.classList.toggle('aarlo-pseudo-fullscreen', isFs);
+            }
+        }
+
+        try {
+            document.body.style.overflow = isFs ? 'hidden' : '';
+        } catch (e) {}
+
+        this._updateFullScreenButton();
+        if (isFs) {
+            this.showVideoControls(4);
+        }
+    },
+
+    exitPseudoFullScreen() {
+        if (!this.gs || !this.gs.isPseudoFullScreen) return;
+        this.gs.isPseudoFullScreen = false;
+
+        const haCard = this.querySelector('ha-card');
+        if (haCard) {
+            haCard.classList.remove('aarlo-pseudo-fullscreen');
+        }
+        const modalViewer = this._element('modal-viewer');
+        if (modalViewer) {
+            modalViewer.classList.remove('aarlo-pseudo-fullscreen');
+        }
+
+        try {
+            document.body.style.overflow = '';
+        } catch (e) {}
+
+        this._updateFullScreenButton();
+    },
+
+    exitAllFullScreen() {
+        this.exitPseudoFullScreen();
+        if (document.fullscreenElement || document.webkitFullscreenElement) {
+            try {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(() => {});
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
+            } catch (e) {}
+        }
+    },
+
+    setUpSeekBar() {
+        let video = this._melement('video-player');
+        let seekBar = this._melement('video-seek');
+    
+        video.addEventListener( "timeupdate", () => {
+            seekBar.value = (100 / video.duration) * video.currentTime;
+        });
+        seekBar.addEventListener( "change", () => {
+            video.currentTime = video.duration * (seekBar.value / 100);
+        });
+        seekBar.addEventListener( "mousedown", () => {
+            this.showVideoControls(0);
+            this.gs.streamPaused = video.paused;
+            video.pause();
+        });
+        seekBar.addEventListener( "mouseup", () => {
+            if (!this.gs.streamPaused) {
+                video.play().catch(err => this._log(`Seek play error: ${err}`));
+            }
+            this.hideVideoControlsLater();
+        });
+    },
+
+    showVideoControls(seconds = 0) {
+        this._mshow("video-controls");
+        this._melement("video-player").style.cursor = "";
+        this.hideVideoControlsCancel();
+        if (seconds !== 0) {
+            this.hideVideoControlsLater(seconds);
+        }
+    },
+
+    hideVideoControls() {
+        this.hideVideoControlsCancel();
+        this._mhide("video-controls");
+        this._melement("video-player").style.cursor = "none";
+    },
+
+    hideVideoControlsLater(seconds = 0) {
+        this.hideVideoControlsCancel();
+        const timeout = seconds || this._defaultControlsTimeout();
+        this.cs.controlTimeout = setTimeout(() => {
+            this.cs.controlTimeout = null;
+            this.hideVideoControls();
+        }, timeout * 1000);
+    },
+
+    hideVideoControlsCancel() {
+        if ( this.cs.controlTimeout !== null ) {
+            clearTimeout( this.cs.controlTimeout );
+            this.cs.controlTimeout = null;
+        }
+    },
+
+};
+
+const PtzViewMixin = {
+    buildPtzOverlay() {
+        if (!this.cc.showPtz) {
+            return null;
+        }
+
+        const overlay = document.createElement("div");
+        overlay.classList.add("ptz-overlay");
+        if (this.cc.ptzMode === "hover") {
+            overlay.classList.add("ptz-hover-mode");
+        }
+        if (this.ls.showPtzTouch) {
+            overlay.classList.add("ptz-active");
+        }
+
+        const D_PAD = [
+            { id: "top_left", icon: "mdi:arrow-top-left" },
+            { id: "up", icon: "mdi:arrow-up" },
+            { id: "top_right", icon: "mdi:arrow-top-right" },
+            { id: "left", icon: "mdi:arrow-left" },
+            { id: "stop", icon: "mdi:stop", isStop: true },
+            { id: "right", icon: "mdi:arrow-right" },
+            { id: "bottom_left", icon: "mdi:arrow-bottom-left" },
+            { id: "down", icon: "mdi:arrow-down" },
+            { id: "bottom_right", icon: "mdi:arrow-bottom-right" },
+        ];
+
+        D_PAD.forEach((btn) => {
+            const el = document.createElement("div");
+            el.classList.add("ptz-btn");
+            if (btn.isStop) {
+                el.classList.add("ptz-btn-stop");
+            }
+            el.setAttribute("title", `PTZ ${btn.id}`);
+
+            const icon = document.createElement("ha-icon");
+            icon.setAttribute("icon", btn.icon);
+            el.appendChild(icon);
+
+            el.addEventListener("click", (e) => {
+                e.stopPropagation();
+                if (btn.isStop) {
+                    this.performPtz("stop");
+                } else {
+                    this.performPtz(btn.id);
+                }
+            });
+            overlay.appendChild(el);
+        });
+
+        return overlay;
+    },
+
+    buildPresetBar() {
+        if (!this.cc.showPtz || !this.cc.showPresets) {
+            return null;
+        }
+
+        const presets = this.getPresets();
+        if (!presets || presets.length === 0) {
+            return null;
+        }
+
+        const bar = document.createElement("div");
+        bar.classList.add("preset-bar");
+        if (this.cc.ptzMode === "hover") {
+            bar.classList.add("ptz-hover-mode");
+        }
+        if (this.ls.showPtzTouch) {
+            bar.classList.add("ptz-active");
+        }
+
+        presets.forEach((name) => {
+            const chip = document.createElement("div");
+            chip.classList.add("preset-chip");
+            chip.textContent = name;
+            chip.setAttribute("title", `Go to preset ${name}`);
+
+            chip.addEventListener("click", (e) => {
+                e.stopPropagation();
+                this.performPreset(name);
+            });
+            bar.appendChild(chip);
+        });
+
+        return bar;
+    },
+
+    getPresets() {
+        if (Array.isArray(this.cc.presets) && this.cc.presets.length > 0) {
+            return this.cc.presets;
+        }
+        // Auto-discover from camera entity attributes if available
+        const stateObj = this._hass.states[this.cc.id];
+        if (stateObj && stateObj.attributes && Array.isArray(stateObj.attributes.preset_list)) {
+            return stateObj.attributes.preset_list;
+        }
+        return [];
+    },
+
+    async performPtz(movement) {
+        if (!this._hass || !this.cc.id) {
+            return;
+        }
+        try {
+            await this._hass.callService("foscam", "ptz", {
+                entity_id: this.cc.id,
+                movement: movement,
+                travel_time: this.cc.ptzTravelTime,
+            });
+        } catch (err) {
+            console.warn(`[foscam-glance] PTZ ${movement} failed:`, err);
+        }
+    },
+
+    async performPreset(presetName) {
+        if (!this._hass || !this.cc.id) {
+            return;
+        }
+        try {
+            await this._hass.callService("foscam", "ptz_preset", {
+                entity_id: this.cc.id,
+                preset_name: presetName,
+            });
+        } catch (err) {
+            console.warn(`[foscam-glance] Preset ${presetName} failed:`, err);
+        }
+    },
+};
+
+class FoscamGlance extends HTMLElement {
+
+    constructor() {
+        super();
+
+        // current version
+        this._version = CARD_VERSION;
+
+        // State and config.
+        this._ready = "stopped";
+        this._hass = null;
+        this._config = null;
+
+        // Internationalisation.
+        this._i = DEFAULT_MESSAGES;
+
+        // Maybe gs should be cs/ls; think about multiple videos going...
+        this._gc = {};
+        this._gs = {};
+        this._cc = {};
+        this._cs = {};
+        this._lc = {};
+        this._ls = {};
+        this._cameraIndex = 0;
+        this._oldHassStates = null;
+    }
+
+    render() {
+        this.innerHTML = `
+            <style>${CARD_STYLES}</style>
+            <div class="w3-modal"
+                 id="${this._id('modal-viewer')}"
+                 style="display:none">
+                <div class="w3-modal-content w3-animate-opacity aarlo-modal-base"
+                     id="${this._id('modal-content')}">
+                    <div class="aarlo-modal-video-wrapper"
+                         id="${this._id('modal-video-wrapper')}">
+                        <div class="aarlo-modal-video-background"
+                             id="${this._id('modal-video-background')}">
+                        </div>
+                        <video class="aarlo-modal-video"
+                               id="${this._id('modal-video-player')}"
+                               style="display:none" playsinline muted>
+                            Your browser does not support the video tag.
+                        </video>
+                        <div class="box box-bottom"
+                               id="${this._id('modal-video-controls')}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <ha-card>
+                <div class="aarlo-base aarlo-aspect-${this.gc.aspectRatio}"
+                     id="${this._id('aarlo-wrapper')}">
+                    <video class="aarlo-video"
+                           id="${this._id('video-player')}"
+                           style="display:none" playsinline muted>
+                        Your browser does not support the video tag.
+                    </video>
+                    <img class="aarlo-image"
+                         id="${this._id('camera-viewer')}"
+                         style="display:none">
+                    <div class="aarlo-image"
+                         id="${this._id('library-viewer')}"
+                         style="display:none">
+                    </div>
+                    <div class="aarlo-image aarlo-broken-image" 
+                         id="${this._id('broken-image')}"
+                         style="height: 100px">
+                    </div>
+                </div>
+                <div class="box box-top"
+                     id="${this._id('top-bar')}"
+                     style="display:none">
+                </div>
+                <div class="box box-bottom"
+                     id="${this._id('bottom-bar')}"
+                     style="display:none">
+                </div>
+                <div class="box box-bottom"
+                     id="${this._id('library-controls')}"
+                     style="display:none">
+                </div>
+                <div class="box box-bottom"
+                     id="${this._id('video-controls')}"
+                     style="display:none">
+                </div>
+            </ha-card>`;
+    }
+
+    static get properties() {
+        return {
+            // All handle internally
+        }
+    }
+
+    updated(_changedProperties) {
+        // All handle internally
+    }
+
+    connectedCallback() {
+        if (this._ready === "ready") {
+            this.updateView();
+        }
+    }
+
+    disconnectedCallback() {
+        this.exitAllFullScreen();
+        if (this._keydownHandler) {
+            window.removeEventListener('keydown', this._keydownHandler);
+            this._keydownHandler = null;
+        }
+        if (this._fullscreenChangeHandler) {
+            document.removeEventListener('fullscreenchange', this._fullscreenChangeHandler);
+            document.removeEventListener('webkitfullscreenchange', this._fullscreenChangeHandler);
+            this._fullscreenChangeHandler = null;
+        }
+        this.hideVideoControlsCancel();
+        if (this.cs && this.cs.autoPlayTimer !== null) {
+            clearTimeout(this.cs.autoPlayTimer);
+            this.cs.autoPlayTimer = null;
+        }
+        this.destroyWebRTCStream();
+        this.destroyHLSStream();
+        if (this.gs && this.gs.dash) {
+            try {
+                this.gs.dash.reset();
+            } catch (e) {}
+            this.gs.dash = null;
+        }
+        const video = this._melement('video-player');
+        if (video) {
+            try {
+                video.pause();
+                video.src = "";
+            } catch (e) {}
+        }
+    }
+
+    _hasMonitoredEntitiesChanged(newHass) {
+        if (!this._oldHassStates || !newHass || !newHass.states) {
+            return true;
+        }
+        for (const ci in this._cc) {
+            const cc = this._cc[ci];
+            if (!cc) continue;
+            const watched = [
+                cc.id, cc.motionId, cc.soundId, cc.batteryId,
+                cc.signalId, cc.capturedTodayId, cc.lastCaptureId,
+                cc.doorId, cc.doorBellId, cc.doorBellMuteId, cc.doorLockId,
+                cc.door2Id, cc.door2BellId, cc.door2BellMuteId, cc.door2LockId,
+                cc.lightId, cc.light2Id, cc.sirenId
+            ];
+            for (const entityId of watched) {
+                if (entityId && this._oldHassStates[entityId] !== newHass.states[entityId]) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    _recordMonitoredEntityStates(hass) {
+        if (!hass || !hass.states) return;
+        this._oldHassStates = {};
+        for (const ci in this._cc) {
+            const cc = this._cc[ci];
+            if (!cc) continue;
+            const watched = [
+                cc.id, cc.motionId, cc.soundId, cc.batteryId,
+                cc.signalId, cc.capturedTodayId, cc.lastCaptureId,
+                cc.doorId, cc.doorBellId, cc.doorBellMuteId, cc.doorLockId,
+                cc.door2Id, cc.door2BellId, cc.door2BellMuteId, cc.door2LockId,
+                cc.lightId, cc.light2Id, cc.sirenId
+            ];
+            for (const entityId of watched) {
+                if (entityId && hass.states[entityId]) {
+                    this._oldHassStates[entityId] = hass.states[entityId];
+                }
+            }
+        }
+    }
+
+    set hass( hass ) {
+        this._resolveCameraEntities(hass);
+        const hasChanged = this._hasMonitoredEntitiesChanged(hass);
+        this._hass = hass;
+        if ( this._ready === "stopped" ) {
+            this._ready = "starting";
+            this.initialSetup();
+            this.render();
+            this._recordMonitoredEntityStates(hass);
+        } else if ( this._ready === "ready" && hasChanged ) {
+            this._recordMonitoredEntityStates(hass);
+            this.updateView();
+        }
+    }
+
+    static async getConfigElement() {
+        return document.createElement("aarlo-glance-editor");
+    }
+
+    static getStubConfig(hass, entities, entitiesFallback) {
+        let cameraEntity = "camera.aarlo_camera";
+        if (entities && entities.length > 0) {
+            const found = entities.find(e => e.startsWith("camera.aarlo_") || e.startsWith("camera."));
+            if (found) cameraEntity = found;
+        } else if (hass && hass.states) {
+            const found = Object.keys(hass.states).find(e => e.startsWith("camera.aarlo_"));
+            if (found) cameraEntity = found;
+        }
+        return {
+            type: "custom:aarlo-glance",
+            entity: cameraEntity,
+            image_top: "name,status",
+            image_bottom: "motion,library,play,snapshot,battery",
+        };
+    }
+
+    getLayoutOptions() {
+        return {
+            grid_columns: 4,
+            grid_rows: 3,
+            grid_min_columns: 2,
+            grid_min_rows: 2,
+        };
+    }
+
+    getCardSize() {
+        return this.gc.cardSize
+    }
+
+    moreInfo( id ) {
+        const event = new CustomEvent('hass-more-info', {
+            bubbles: true,
+            cancelable: false,
+            composed: true,
+            detail: { entityId: id },
+        });
+        this.dispatchEvent(event);
+        return event;
+    }
+
+    throwError( error ) {
+        console.error( error );
+        throw new Error( error )
+    }
+
+    _log( msg ) {
+        if( this.gc.log ) {
+            console.log( `${this.cc.id}: ${msg}` );
+        }
+    }
+
+    _id( id ) {
+        return `${id}-${this.gc.idSuffix}`
+    }
+
+    _mid( id ) {
+        return (this.gs.viewer === "modal" ? "modal-" : "") + this._id(id)
+    }
+
+    /**
+     * Look for card element in document.
+     *
+     * @param id The element or `null`
+    */
+    _element( id ) {
+        return this.querySelector( "#" + this._id(id) )
+    }
+
+    /**
+     * Look for modal card element in document.
+     *
+     * Automatically chooses modal name if modal window open.
+     *
+     * @param id The element or `null`
+    */
+    _melement( id ) {
+        return this.querySelector( "#" + this._mid(id) )
+    }
+
+    __show( element, show ) {
+        if ( element ) { element.style.display = (show ? '' : 'none'); }
+    }
+    _show( id, show = true ) {
+        this.__show( this._element(id), show );
+    }
+    _mshow( id, show = true ) {
+        this.__show( this._melement(id), show );
+    }
+
+    __hide( element ) {
+        if ( element ) { element.style.display = 'none'; }
+    }
+    _hide( id ) {
+        this.__hide( this._element(id) );
+    }
+    _mhide( id ) {
+        this.__hide( this._melement(id) );
+    }
+
+    __isHidden( element ) {
+        return element && element.style.display === 'none'
+    }
+    _misHidden( id ) {
+        return this.__isHidden( this._melement(id) )
+    }
+
+    __title( element, title ) {
+        if ( element ) { element.title = title; }
+    }
+    __text( element, text ) {
+        if ( element ) { element.innerText = text; }
+    }
+    __alt( element, alt ) {
+        if ( element ) { element.alt = alt; }
+    }
+    __src( element, src ) {
+        if ( element ) { element.src = src; }
+    }
+    __poster( element, poster ) {
+        if ( element ) { element.poster = poster; }
+    }
+    __icon( element, icon ) {
+        if ( element ) { element.icon = icon; }
+    }
+    __state( element, state ) {
+        let color = "";
+        switch( state ) {
+            case "on":
+            case "state-on":
+                color = "white";
+                break
+            case "warn":
+            case "state-warn":
+                color = "orange";
+                break
+            case "error":
+            case "state-error":
+                color = "red";
+                break
+            case "update":
+            case "state-update":
+                color = "#cccccc";
+                break
+            case "off":
+            case "state-off":
+                color = "#505050";
+                break
+        }
+        if ( element ) {
+            element.style.color = color;
+        }
+    }
+
+    /**
+     * Set a variety of element values.
+     *
+     * It gets called a lot.
+     */
+    __set( element, title, text, icon, state, src, alt, poster ) {
+        if (_real(title))  { this.__title( element, title ); }
+        if (_real(text))   { this.__text ( element, text ); }
+        if (_real(icon))   { this.__icon ( element, icon ); }
+        if (_real(state))  { this.__state( element, state ); }
+        if (_real(src))    { this.__src( element, src ); }
+        if (_real(alt))    { this.__alt( element, alt ); }
+        if (_real(poster)) { this.__poster( element, poster ); }
+    }
+
+    /**
+     * Set a variety pieces of element data.
+     *
+     * @param id - ID of element to change
+     * @param dictionary - Object containing changes. Not all entries need to
+     *     be set.
+     */
+    _set( id, { title, text, icon, state, src, alt, poster } = {} ) {
+        this.__set( this._element(id), title, text, icon, state, src, alt, poster );
+    }
+    /**
+     * Set a variety pieces of element data.
+     *
+     * This uses the modal version when a modal window is open.
+     *
+     * @param id - ID of element to change
+     * @param dictionary - Object containing changes. Not all entries need to
+     *     be set.
+     */
+    _mset( id, { title, text, icon, state, src, alt, poster } = {} ) {
+        this.__set( this._melement(id), title, text, icon, state, src, alt, poster );
+    }
+
+    _widthHeight(id, width, height, width_suffix = '' ) {
+        let element = this._element(id);
+        if ( element ) {
+            if ( width !== null ) {
+                element.style.setProperty("width",`${width}px`,width_suffix);
+            }
+            if ( height !== null ) {
+                element.style.height = `${height}px`;
+            }
+        }
+    }
+
+    _sizeSuffix() {
+        if( this.gc.small ) {
+            return "small"
+        } else if( this.gc.tiny ) {
+            return "tiny"
+        }
+        return "medium"
+    }
+
+    _paddingTop( id, top ) {
+        let element = this._element(id);
+        if ( element ) {
+            if ( top !== null ) {
+                element.style.paddingTop=`${top}px`;
+            }
+        }
+    }
+
+    _findEgressToken( url ) {
+        let parser = document.createElement('a');
+        parser.href = url;
+        let queries = parser.search.replace(/^\?/, '').split('&');
+        for( let i = 0; i < queries.length; i++ ) {
+            const split = queries[i].split('=');
+            if( split[0] === 'egressToken' ) {
+                return split[1]
+            }
+        }
+        return 'unknown'
+    }
+
+    get gc() {
+        return this._gc
+    }
+    set gc( value ) {
+        this._gc = value;
+    }
+    get gs() {
+        return this._gs
+    }
+    set gs( value ) {
+        this._gs = value;
+    }
+    get cc() {
+        if( !(`${this._cameraIndex}` in this._cc) ) {
+            this._cc[`${this._cameraIndex}`] = {};
+        }
+        return this._cc[`${this._cameraIndex}`]
+    }
+    set cc( value ) {
+        this._cc[`${this._cameraIndex}`] = value;
+    }
+    get cs() {
+        if( !(`${this._cameraIndex}` in this._cs) ) {
+            this._cs[`${this._cameraIndex}`] = {};
+        }
+        return this._cs[this._cameraIndex]
+    }
+    set cs( value ) {
+        this._cs[this._cameraIndex] = value;
+    }
+    get lc() {
+        if( !(`${this._cameraIndex}` in this._lc) ) {
+            this._lc[`${this._cameraIndex}`] = {};
+        }
+        return this._lc[this.gc.blendedMode ? this._cameraCount : this._cameraIndex]
+    }
+    set lc( value ) {
+        this._lc[this._cameraIndex] = value;
+    }
+    get ls() {
+        if( !(`${this._cameraIndex}` in this._ls) ) {
+            this._ls[`${this._cameraIndex}`] = {};
+        }
+        return this._ls[this.gc.blendedMode ? this._cameraCount : this._cameraIndex]
+    }
+    set ls( value ) {
+        this._ls[this._cameraIndex] = value;
+    }
+
+    /**
+     * Find `what` in `section` of language pack.
+     *
+     * The code removes punctuation and replaces spaces with underscores
+     * in `what`.
+     * @param section - the section of `this._i` to look at
+     * @param what - what to look for
+     * @returns {*}
+     * @private
+     */
+    _tr(section, what) {
+        const new_what = what.replace(/[^\w\s]|_/g, "")
+                .replace(/\s+/g, " ")
+                .replace(/\s/g, "_")
+                .toLowerCase();
+        return new_what in this._i[section] ? this._i[section][new_what] : what
+    }
+
+    _getState(_id, default_value = '') {
+        return this._hass !== null && _id in this._hass.states ?
+            this._hass.states[_id] : {
+                state: default_value,
+                attributes: {
+                    friendly_name: 'unknown',
+                    wired_only: false,
+                    image_source: "unknown",
+                    charging: false
+                }
+            };
+    }
+
+    _updateStatuses() {
+
+        // CAMERA
+        const camera = this._getState(this.cc.id,'unknown');
+
+        // Set the camera name now. We have to wait until now to ensure `_hass`
+        // is set and we can get to the camera state.
+        if ( this.cc.name === null ) {
+            this.cc.name = camera.attributes.friendly_name;
+        }
+
+        // Camera state has changed. Update the image URL so we update the
+        // view. If we've moved from "taking snapshot" to anything else then
+        // queue up some image update requests.
+        if ( camera.state !== this.cs.state ) {
+            this._log( `state-update: ${this.cs.state} --> ${camera.state}` );
+            if( camera.state !== 'off' ) {
+                this.generateImageURL();
+            } else {
+                this.cs.image = camera.attributes.last_thumbnail;
+            }
+            if ( this.cs.state === 'taking snapshot' ) {
+                this.cc.snapshotTimeouts.forEach( (seconds) => {
+                    this.generateImageURLLater( seconds );
+                });
+            }
+            this.gc.lastActive = this._cameraIndex;
+            this.cs.state = camera.state;
+            this.cs.details.status = { text: this._tr("state",this.cs.state) };
+        }
+
+        // Entity picture has changed. This means there is a new auth key
+        // attached. Update the image URL so we update the view.
+        if ( this.cs.imageBase !== camera.attributes.entity_picture ) {
+            this._log( `auth-update: ${this.cs.imageBase} --> ${camera.attributes.entity_picture}` );
+            this.generateImageURL();
+        }
+
+        // Image source has changed. This means it was from a new capture or
+        // snapshot. Update the image URL so we update the view.
+        if ( this.cs.imageSource !== camera.attributes.image_source ) {
+            this._log( `source-update: ${this.cs.imageSource} --> ${camera.attributes.image_source}` );
+            this.generateImageURL();
+            this.gc.lastActive = this._cameraIndex;
+            this.cs.imageSource = camera.attributes.image_source;
+        }
+
+        // Update status details.
+        if( this.cs.image !== null ) {
+            let date = "";
+            let full_date = this.cs.imageSource ? this.cs.imageSource : '';
+            if( full_date.startsWith('capture/') ) { 
+                date      = full_date.substring(8);
+                full_date = `${this._i.image.automatic_capture} ${date}`;
+            } else if( full_date.startsWith('snapshot/') ) { 
+                date      = full_date.substring(9);
+                full_date = `${this._i.image.snapshot_capture} ${date}`;
+            }
+            this.cs.details.viewer = {title: full_date, alt: full_date, src: this.cs.image};
+            this.cs.details.date = {title: full_date, text: date};
+        } else {
+            this.cs.details.viewer = {title: "", alt: "", src: null};
+            this.cs.details.date = {title: "", text: ""};
+        }
+
+        // LIBRARY
+        // Check for video update. We can go from:
+        // - having no recordings to having one or more
+        // - having one or more recordings to none
+        // - having new recordings
+        if( "last_video" in camera.attributes ) {
+            if( this.cs.lastRecording !== camera.attributes.last_video ) {
+                this._log( `video-changed: updating library` );
+                this.asyncLoadLibrary( this._cameraIndex ).then( () => {
+                    this.mergeLibraries();
+                    this._updateLibraryView();
+                });
+                this.cs.lastRecording = camera.attributes.last_video;
+            }
+        } else {
+            if( this.cs.lastRecording !== null ) {
+                this._log( `no-videos: clearing library` );
+                this.ls.recordings    = [];
+                this.cs.lastRecording = null;
+            }
+        }
+
+        // IMAGE 
+        // FUNCTIONS
+        if (this.cs.state === 'off') {
+            this.cs.details.stream = _tsi(this._i.image.feature_disabled, 'off', 'mdi:play');
+        } else {
+            this.cs.details.stream = _tsi(this._i.image.start_stream, 'on', 'mdi:play');
+        }
+
+        if ( this.cs.state === 'off' ) {
+            this.cs.details.onoff = _tsi(this._i.image.turn_camera_on, 'state-on', 'mdi:camera');
+        } else {
+            this.cs.details.onoff = _tsi(this._i.image.turn_camera_off, '', 'mdi:camera-off');
+        }
+
+        if(this.cs.state !== 'off') {
+            this.cs.details.snapshot = _tsi(this._i.image.take_a_snapshot, '', 'mdi:camera-enhance');
+        } else {
+            this.cs.details.snapshot = _tsi(this._i.image.feature_disabled, 'off', 'mdi:camera-off');
+        }
+
+        // SENSORS
+        if ( camera.attributes.wired_only ) {
+            this.cs.details.battery = _tsi( this._i.status.plugged_in, 'state-update', 'mdi:power-plug');
+        } else {
+            const battery = this._getState(this.cc.batteryId, 0);
+            const isCharging = Boolean(camera.attributes && (camera.attributes.charging || camera.attributes.battery_charging));
+            const batteryValue = Number(battery.state);
+            const icon = batteryLevelIcon(battery.state, isCharging);
+            const stateClass = isNaN(batteryValue)
+                ? ''
+                : (batteryValue < 15 ? 'state-error' : (batteryValue < 25 ? 'state-warn' : 'state-update'));
+            const friendlyName = (battery.attributes && battery.attributes.friendly_name) || this._i.status.battery_strength;
+            const stateText = isNaN(batteryValue) ? `${friendlyName}: ${battery.state}` : `${friendlyName}: ${battery.state}%`;
+            this.cs.details.battery = _tsi(
+                stateText,
+                stateClass,
+                icon
+            );
+        }
+
+        const signal = this._getState(this.cc.signalId, 0);
+        this.cs.details.signal = _tsi(
+            `${this._i.status.signal_strength}: ${signal.state}`,
+            '',
+            signal.state === "0" ? 'mdi:wifi-outline' : `mdi:wifi-strength-${signal.state}`
+        );
+
+        if ( this.cs.state !== 'off' ) {
+            const has_motion = this._getState(this.cc.motionId,'off').state === 'on';
+            this.cs.details.motion = _tsi(
+                `${this._i.status.motion}: ${has_motion ? this._i.status.detected : this._i.status.clear}`,
+                has_motion ? 'on' : '',
+                has_motion ? "mdi:run" : "mdi:walk",
+            );
+        } else {
+            this.cs.details.motion = _tsi(this._i.image.feature_disabled, 'off', "mdi:walk");
+        }
+
+        if ( this.cs.state !== 'off' ) {
+            const has_sound = this._getState(this.cc.soundId,'off').state === 'on';
+            this.cs.details.sound = _tsi(
+                `${this._i.status.sound}: ${has_sound ? this._i.status.detected : this._i.status.clear}`,
+                has_sound ? 'state-on' : '',
+                "mdi:ear-hearing"
+            );
+        } else {
+            this.cs.details.sound = _tsi(this._i.image.feature_disabled, 'off', "mdi:ear-hearing-off");
+        }
+
+        // We always save this, used by library code to check for updates
+        const captured = this._getState(this.cc.capturedTodayId, "0").state;
+        const last = this._getState(this.cc.lastCaptureId, "0").state;
+        if( this.ls.recordings && this.ls.recordings.length > 0 ) {
+            this.cs.details.library = _tsi(
+                `${this._i.status.library}: ` +
+                        ( captured === "0" ? "" : `${captured} ${this._i.status.captured_something} ${last}, ` ) +
+                        this._i.status.library_open,
+                captured !== "0" ? 'on' : '',
+                this.cc.numericView ? 'mdi:numeric-' + (captured > 9 ? "9-plus" : captured) + '-box' : 'mdi:file-video'
+            );
+        } else {
+            this.cs.details.library = _tsi(
+                `${this._i.status.library}: ${this._i.status.library_empty}`,
+                'off',
+                this.cc.numericView ? 'mdi:numeric-0-box' : 'mdi:file-video-outline'
+            );
+        }
+
+        // OPTIONAL DOORS
+        if(this.cc.doorId) {
+            const doorState = this._getState(this.cc.doorId, 'off');
+            const is_open   = doorState.state === 'on';
+            this.cs.details.door = _tsi(
+                `${doorState.attributes.friendly_name}: ${is_open ? this._i.status.door_open : this._i.status.door_closed}`,
+                is_open ? 'on' : '',
+                is_open ? 'mdi:door-open' : 'mdi:door',
+            );
+        }
+        if(this.cc.door2Id) {
+            const doorState = this._getState(this.cc.door2Id, 'off');
+            const is_open   = doorState.state === 'on';
+            this.cs.details.door2 = _tsi(
+                `${doorState.attributes.friendly_name}: ${is_open ? this._i.status.door_open : this._i.status.door_closed}`,
+                is_open ? 'on' : '',
+                is_open ? 'mdi:door-open' : 'mdi:door',
+            );
+        }
+
+        if(this.cc.doorLockId) {
+            const doorLockState = this._getState(this.cc.doorLockId, 'locked');
+            const is_locked     = doorLockState.state === 'locked';
+            this.cs.details.lock = _tsi(
+                `${doorLockState.attributes.friendly_name}: ${is_locked ? this._i.status.lock_locked : this._i.status.lock_unlocked}`,
+                is_locked ? 'state-on' : 'state-warn',
+                is_locked ? 'mdi:lock' : 'mdi:lock-open',
+            );
+        }
+        if(this.cc.door2LockId) {
+            const door2LockState = this._getState(this.cc.door2LockId, 'locked');
+            const is_locked      = door2LockState.state === 'locked';
+            this.cs.details.lock2 = _tsi(
+                `${door2LockState.attributes.friendly_name}: ${is_locked ? this._i.status.lock_locked : this._i.status.lock_unlocked}`,
+                is_locked ? 'state-on' : 'state-warn',
+                is_locked ? 'mdi:lock' : 'mdi:lock-open',
+            );
+        }
+
+        if(this.cc.doorBellId) {
+            const bell = this._getState(this.cc.doorBellId, 'off');
+            const name = bell.attributes.friendly_name;
+            const mute = bell.attributes.chimes_silenced || bell.attributes.calls_silenced;
+            const muteable = !!this.cc.doorBellMuteId;
+            if ( bell.state === 'on' ) {
+                this.cs.details.bell = _tsi(`${name}: ${this._i.status.doorbell_pressed}`, 'on', 'mdi:bell-ring');
+            } else if( muteable ) {
+                if ( mute ) {
+                    this.cs.details.bell = _tsi(`${name}: ${this._i.status.doorbell_muted}`, 'warn', 'mdi:bell-off');
+                } else {
+                    this.cs.details.bell = _tsi(`${name}: ${this._i.status.doorbell_mute}`, '', 'mdi:bell');
+                }
+            } else {
+                this.cs.details.bell = _tsi(`${name}: ${this._i.status.doorbell_idle}`, '', 'mdi:bell');
+            }
+        }
+
+        if(this.cc.door2BellId) {
+            const bell = this._getState(this.cc.door2BellId, 'off');
+            const name = bell.attributes.friendly_name;
+            const mute = bell.attributes.chimes_silenced || bell.attributes.calls_silenced;
+            const muteable = !!this.cc.door2BellMuteId;
+            if ( bell.state === 'on' ) {
+                this.cs.details.bell2 = _tsi(`${name}: ${this._i.status.doorbell_pressed}`, 'on', 'mdi:bell-ring');
+            } else if( muteable ) {
+                if ( mute ) {
+                    this.cs.details.bell2 = _tsi(`${name}: ${this._i.status.doorbell_muted}`, 'warn', 'mdi:bell-off');
+                } else {
+                    this.cs.details.bell2 = _tsi(`${name}: ${this._i.status.doorbell_mute}`, '', 'mdi:bell');
+                }
+            } else {
+                this.cs.details.bell2 = _tsi(`${name}: ${this._i.status.doorbell_idle}`, '', 'mdi:bell');
+            }
+        }
+
+        if(this.cc.lightId) {
+            const lightState = this._getState(this.cc.lightId, 'off');
+            const is_on = lightState.state === 'on';
+            this.cs.details.light = _tsi(
+                `${lightState.attributes.friendly_name}: ` + (is_on ?  this._i.status.light_on : this._i.status.light_off),
+                is_on ? 'on' : '',
+                'mdi:lightbulb'
+            );
+        }
+        if(this.cc.light2Id) {
+            const lightState = this._getState(this.cc.light2Id, 'off');
+            const is_on = lightState.state === 'on';
+            this.cs.details.light2 = _tsi(
+                `${lightState.attributes.friendly_name}: ` + (is_on ?  this._i.status.light_on : this._i.status.light_off),
+                is_on ? 'on' : '',
+                'mdi:lightbulb'
+            );
+        }
+
+        if(this.cc.sirenId) {
+            const sirenState = this._getState(this.cc.sirenId, 'off');
+            const is_on = sirenState.state === 'on';
+            const name = sirenState.attributes && sirenState.attributes.friendly_name ? sirenState.attributes.friendly_name : 'Siren';
+            this.cs.details.siren = _tsi(
+                `${name}: ` + (is_on ? this._i.status.siren_on : this._i.status.siren_off),
+                is_on ? 'warn' : '',
+                'mdi:bullhorn'
+            );
+        }
+    }
+
+    updateStatuses() {
+
+        this.gc.lastActive = -1;
+        const index = this._cameraIndex;
+        for( this._cameraIndex = 0; this._cameraIndex < this._cameraCount; this._cameraIndex++ ) {
+            this._updateStatuses();
+        }
+        this._cameraIndex = index;
+
+        if( this.gc.activeView ) {
+            if( this.gc.lastActive !== -1 && this.gc.lastActive !== index ) {
+                this.setCameraImage( this.gc.lastActive );
+            }
+        }
+    }
+
+    checkConfig() {
+        if ( this._hass === null ) {
+            return;
+        }
+
+        if ( !(this.cc.id in this._hass.states) ) {
+            this.throwError( 'unknown camera' );
+        }
+        if ( this.cc.doorId && !(this.cc.doorId in this._hass.states) ) {
+            this.throwError( 'unknown door' );
+        }
+        if ( this.cc.doorBellId && !(this.cc.doorBellId in this._hass.states) ) {
+            this.throwError( 'unknown door bell' );
+        }
+        if ( this.cc.doorLockId && !(this.cc.doorLockId in this._hass.states) ) {
+            this.throwError( 'unknown door lock' );
+        }
+        if ( this.cc.door2Id && !(this.cc.door2Id in this._hass.states) ) {
+            this.throwError( 'unknown door (#2)' );
+        }
+        if ( this.cc.door2BellId && !(this.cc.door2BellId in this._hass.states) ) {
+            this.throwError( 'unknown door bell (#2)' );
+        }
+        if ( this.cc.door2LockId && !(this.cc.door2LockId in this._hass.states) ) {
+            this.throwError( 'unknown door lock (#2)' );
+        }
+        if ( this.cc.lightId && !(this.cc.lightId in this._hass.states) ) {
+            this.throwError( 'unknown light' );
+        }
+        if ( this.cc.light2Id && !(this.cc.light2Id in this._hass.states) ) {
+            this.throwError( 'unknown light (#2)' );
+        }
+        if ( this.cc.sirenId && !(this.cc.sirenId in this._hass.states) ) {
+            this.throwError( 'unknown siren' );
+        }
+    }
+
+    getGlobalConfig( config ) {
+
+        return {
+            // GLOBAL config
+            // Mobile? see here: https://developer.mozilla.org/en-US/docs/Web/HTTP/Browser_detection_using_the_user_agent
+            isMobile: navigator.userAgent.includes("Mobi"),
+            // HA App
+            isHAApp: navigator.userAgent.includes("HomeAssistant"),
+            // Is IOS
+            isApple: navigator.userAgent.includes("iPhone") ||
+                     navigator.userAgent.includes("iPad") ||
+                     navigator.userAgent.includes("iPod") ||
+                     (navigator.userAgent.includes("Macintosh") && navigator.maxTouchPoints > 1),
+            // Is Android
+            isAndroid: navigator.userAgent.includes("Android"),
+
+            // Language override?
+            lang: config.lang,
+
+            // active camera mode
+            activeView: (_includes( config.global, "active" ) ||
+                        _includes( config.image_view, "active" )),
+
+            // initial state is muted
+            isMuted: _includes( config.global, "muted" ),
+
+            // aspect ratio
+            aspectRatio: (_includes(config.global, 'square') ||
+                        _includes(config.image_view, 'square')) ? '1x1' : '16x9',
+            aspectRatioMultiplier: (_includes(config.global, 'square') ||
+                        _includes(config.image_view, 'square')) ? 1 : 0.5625,
+
+            // size
+            small: _includes(config.global,'small'),
+            tiny: _includes(config.global,'tiny'),
+
+            // blended library
+            blendedMode: _includes(config.global, 'blended') ||
+                        _includes( config.library_view, "blended" ),
+
+            // modal window multiplier
+            modalMultiplier: _value_float( config.modal_multiplier, 0.8 ),
+
+            // lovelace card size
+            cardSize: _value_int( config.card_size, 3 ),
+
+            // swipe threshold
+            swipeThreshold: _value_int( config.swipe_threshold, 150 ),
+
+            // logging?
+            log: _value( config.logging, false ),
+        }
+    }
+
+    getGlobalState( _config ) {
+        return {
+            dash: null,
+            hls: null,
+            pc: null,
+            webrtcUnsub: null,
+            libraryCamera: -1,
+            isMuted: this.gc.isMuted,
+            poster: '',
+            recording: null,
+            stream: null,
+            streamPaused: false,
+        }
+    }
+
+    getCameraConfig( global, local ) {
+        const config = _mergeArrays( global, local );
+
+        // Find entity and determine camera name.
+        const entity = config.entity;
+        if ( !entity || !entity.startsWith( 'camera.' ) ) {
+            this.throwError( "config requires an aarlo camera entity (e.g. camera.aarlo_kitchen)" );
+            return {}
+        }
+        const camera = entity.startsWith('camera.aarlo_') ? entity.replace( 'camera.aarlo_','' ) : entity.replace('camera.', '');
+
+        let cc = {};
+
+        // Grab name if there
+        cc.name = _value( config.name, null );
+
+        // Get the version out.
+        if ("version" in config) {
+            this.throwError(`version: ${this._version}`);
+            return {}
+        }
+
+        // Save layout
+        cc.image_top = config.image_top;
+        cc.image_bottom = config.image_bottom;
+
+        // How do we display recordings or stream?
+        cc.arloPlay          = _includes(config.image_view, "arlo-stream");
+        cc.haPlay            = _includes(config.image_view, "ha-stream");
+        cc.webrtcPlay        = _includes(config.image_view, "webrtc") || _includes(config.image_view, "sip");
+        cc.modalPlayer       = _includes(config.image_view, "modal");
+        cc.smartPlayer       = _includes(config.image_view, "smart-modal");
+        cc.numericView       = _includes(config.image_view, 'numeric');
+        cc.autoPlay          = _includes(config.image_view, 'start-stream');
+        cc.autoPlayRecording = _includes(config.image_view, 'start-recording');
+
+        // Does clicking show the live stream or last recording?
+        cc.playStream = _includes( config.image_click, "stream");
+
+        // snapshot updates
+        cc.snapshotTimeouts = _array( config.snapshot_retry, [ 2, 5 ] );
+
+        cc.camera = camera;
+        cc.rawConfig = config;
+
+        // camera and sensors (auto-resolved dynamically against hass.states)
+        cc.id              = _value(config.camera_id,  `camera.aarlo_${camera}`);
+        cc.motionId        = _value(config.motion_id,  `binary_sensor.aarlo_${camera}_motion`);
+        cc.soundId         = _value(config.sound_id,   `binary_sensor.aarlo_${camera}_sound`);
+        cc.batteryId       = _value(config.battery_id, `sensor.aarlo_${camera}_battery_level`);
+        cc.signalId        = _value(config.signal_id,  `sensor.aarlo_${camera}_signal_strength`);
+        cc.capturedTodayId = _value(config.capture_id, `sensor.aarlo_${camera}_captured_today`);
+        cc.lastCaptureId   = _value(config.last_id,    `sensor.aarlo_${camera}_last`);
+
+        // door definition
+        cc.doorId         = _value(config.door);
+        cc.doorBellId     = _value(config.door_bell);
+        cc.doorBellMuteId = _value(config.door_bell_mute);
+        cc.doorLockId     = _value(config.door_lock);
+
+        // door2 definition
+        cc.door2Id         = _value(config.door2);
+        cc.door2BellId     = _value(config.door2_bell);
+        cc.door2BellMuteId = _value(config.door2_bell_mute);
+        cc.door2LockId     = _value(config.door2_lock);
+
+        // light definitions
+        cc.lightId  = _value(config.light);
+        cc.light2Id = _value(config.light2);
+
+        // siren definition
+        cc.sirenId  = _value(config.siren);
+
+        return cc
+    }
+
+    _resolveEntityId(hass, explicitId, domain, camera, suffix) {
+        if (explicitId) {
+            if (!hass || !hass.states) return explicitId;
+            if (explicitId in hass.states) return explicitId;
+            // Check if swapped variant exists (legacy <-> modern)
+            const modern = `${domain}.aarlo_${camera}_${suffix}`;
+            const legacy = `${domain}.aarlo_${suffix}_${camera}`;
+            if (explicitId === legacy && modern in hass.states) return modern;
+            if (explicitId === modern && legacy in hass.states) return legacy;
+            const modernNoPrefix = `${domain}.${camera}_${suffix}`;
+            const legacyNoPrefix = `${domain}.${suffix}_${camera}`;
+            if (explicitId === legacyNoPrefix && modernNoPrefix in hass.states) return modernNoPrefix;
+            if (explicitId === modernNoPrefix && legacyNoPrefix in hass.states) return legacyNoPrefix;
+            return explicitId;
+        }
+
+        const candidates = [
+            `${domain}.aarlo_${camera}_${suffix}`,
+            `${domain}.aarlo_${suffix}_${camera}`,
+            `${domain}.${camera}_${suffix}`,
+            `${domain}.${suffix}_${camera}`,
+        ];
+
+        if (hass && hass.states) {
+            for (const id of candidates) {
+                if (id in hass.states) {
+                    return id;
+                }
+            }
+        }
+        return candidates[0];
+    }
+
+    _resolveCameraEntities(hass) {
+        if (!hass || !hass.states || !this._cc) return;
+        for (const ci in this._cc) {
+            const cc = this._cc[ci];
+            if (!cc || !cc.camera) continue;
+            const config = cc.rawConfig || {};
+            const camera = cc.camera;
+
+            // Camera entity resolution
+            if (!config.camera_id) {
+                if (`camera.aarlo_${camera}` in hass.states) {
+                    cc.id = `camera.aarlo_${camera}`;
+                } else if (`camera.${camera}` in hass.states) {
+                    cc.id = `camera.${camera}`;
+                }
+            }
+
+            cc.motionId = this._resolveEntityId(hass, config.motion_id, 'binary_sensor', camera, 'motion');
+            cc.soundId = this._resolveEntityId(hass, config.sound_id, 'binary_sensor', camera, 'sound');
+            cc.batteryId = this._resolveEntityId(hass, config.battery_id, 'sensor', camera, 'battery_level');
+            cc.signalId = this._resolveEntityId(hass, config.signal_id, 'sensor', camera, 'signal_strength');
+            cc.capturedTodayId = this._resolveEntityId(hass, config.capture_id, 'sensor', camera, 'captured_today');
+            cc.lastCaptureId = this._resolveEntityId(hass, config.last_id, 'sensor', camera, 'last');
+
+            // Doorbell ding resolution
+            if (config.door_bell) {
+                cc.doorBellId = this._resolveEntityId(hass, config.door_bell, 'binary_sensor', camera, 'ding');
+            } else if (!cc.doorBellId) {
+                const dingCandidates = [
+                    `binary_sensor.aarlo_${camera}_ding`,
+                    `binary_sensor.aarlo_ding_${camera}`,
+                    `binary_sensor.${camera}_ding`,
+                    `binary_sensor.ding_${camera}`,
+                ];
+                for (const did of dingCandidates) {
+                    if (did in hass.states) {
+                        cc.doorBellId = did;
+                        break;
+                    }
+                }
+            }
+
+            // Spotlight / light resolution
+            if (!config.light && !cc.lightId) {
+                const lightCandidates = [
+                    `light.aarlo_${camera}_spotlight`,
+                    `light.aarlo_spotlight_${camera}`,
+                    `light.aarlo_${camera}`,
+                    `light.${camera}_spotlight`,
+                ];
+                for (const lid of lightCandidates) {
+                    if (lid in hass.states) {
+                        cc.lightId = lid;
+                        break;
+                    }
+                }
+            }
+
+            // Siren resolution
+            if (!config.siren && !cc.sirenId) {
+                const sirenCandidates = [
+                    `siren.aarlo_${camera}_siren`,
+                    `siren.aarlo_siren_${camera}`,
+                    `siren.aarlo_${camera}`,
+                    `siren.${camera}_siren`,
+                    `siren.aarlo_all_sirens`,
+                ];
+                for (const sid of sirenCandidates) {
+                    if (sid in hass.states) {
+                        cc.sirenId = sid;
+                        break;
+                    }
+                }
+            }
+        }
+        if (this.gc && this.cc && this.cc.id) {
+            this.gc.idSuffix = _replaceAll(this.cc.id, '.', '-');
+            this.gc.idSuffix = _replaceAll(this.gc.idSuffix, '_', '-');
+        }
+    }
+
+    getCameraState( config ) {
+        return {
+            autoPlay:      config.autoPlay,
+            autoPlayTimer: null,
+            details:       {},
+            lastRecording: null,
+            image:         null,
+            imageBase:     null,
+        }
+    }
+
+    getLibraryConfig( global, local ) {
+
+        const config = _mergeArrays( global, local );
+        const sizes = _array( config.library_sizes, [ 3 ] );
+
+        return {
+            // What to when video clicked
+            download:          _includes(config.library_view, "download"),
+            duration:          _includes(config.library_view, "duration"),
+            modalPlayer:       _includes(config.library_view, "modal"),
+            smartPlayer:       _includes(config.library_view, "smart-modal"),
+            autoPlayRecording: _includes(config.library_view, 'start-recording'),
+
+            // How many recordings to show
+            sizes:      sizes,
+            recordings: _value_int( config.max_recordings, 99 ),
+
+            // Highlight motion triggers?
+            regions: _array( config.library_regions, sizes ),
+            colors:  {
+                "Animal":  _value( config.library_animal, 'orangered' ),
+                "Vehicle": _value( config.library_vehicle, 'yellow' ),
+                "Person":  _value( config.library_person, 'lime' ),
+                "Package":  _value( config.library_package, 'cyan' ),
+            },
+        }
+    }
+
+    getLibraryState( _config ) {
+        return {
+            gridCount:  -1,
+            lastOffset: -1,
+            offset:     0,
+            recordings: null,
+            size:       -1,
+            sizeIndex:  0,
+
+        }
+    }
+
+    setConfig(config) {
+
+        // save then check new config
+        // this._config = _mergeArrays(config, {})
+        this._config = config;
+
+        this.gc = this.getGlobalConfig( config );
+        this.gs = this.getGlobalState( config );
+
+        if( "entities" in this._config ) {
+            let ci = 0;
+            this._config.entities.forEach( (local_config) => {
+                this._cc[ci] = this.getCameraConfig( config, local_config );
+                this._cs[ci] = this.getCameraState( this._cc[ci] );
+                this._lc[ci] = this.getLibraryConfig( config, local_config );
+                this._ls[ci] = this.getLibraryState( this._lc[ci] );
+                ci++;
+            });
+
+            // For blended we fake a library at the end.
+            if( this.gc.blendedMode ) {
+                this._lc[ci] = this.getLibraryConfig( config, {} );
+                this._ls[ci] = this.getLibraryState( this._lc[ci] );
+            }
+
+            // Use the first camera.
+            this._cameraCount = ci;
+            this._cameraIndex = 0;
+
+        } else {
+            // Single camera. Much simpler.
+            this._cc[0] = this.getCameraConfig( config, {} );
+            this._cs[0] = this.getCameraState( this._cc[0] );
+            this._lc[0] = this.getLibraryConfig( config, {} );
+            this._ls[0] = this.getLibraryState( this._lc[0] );
+
+            // Use the first camera.
+            this._cameraCount = 1;
+            this._cameraIndex = 0;
+        }
+ 
+        if ( this._hass ) {
+            this._resolveCameraEntities( this._hass );
+        }
+
+        this.checkConfig();
+
+        // web item id suffix
+        this.gc.idSuffix = _replaceAll( this.cc.id,'.','-' );
+        this.gc.idSuffix = _replaceAll( this.gc.idSuffix,'_','-' );
+    }
+
+    getModalDimensions() {
+        let width  = window.innerWidth * this.gc.modalMultiplier;
+        let height = window.innerHeight * this.gc.modalMultiplier;
+        const ratio = this.gc.aspectRatioMultiplier;
+        if( height / width > ratio ) {
+            height = width * ratio;
+        } else if( height / width < ratio ) {
+            width = height * (1/ratio);
+        }
+        this.cs.modalWidth = Math.round(width);
+        this.cs.modalHeight = Math.round(height);
+
+        let topOffset = window.scrollY;
+        if( topOffset !== 0 ) {
+            this.cs.modalTop = Math.round( topOffset + ( (window.innerHeight - height) / 2 ) );
+        } else {
+            this.cs.modalTop = null;
+        }
+    }
+
+    setModalElementData() {
+        this.getModalDimensions();
+        this._paddingTop( "modal-viewer", this.cs.modalTop );
+        this._widthHeight("modal-content", this.cs.modalWidth - 16, null, "important");
+        this._widthHeight("modal-video-wrapper", this.cs.modalWidth, this.cs.modalHeight - 16);
+        this._widthHeight("modal-video-background", this.cs.modalWidth, this.cs.modalHeight);
+        this._widthHeight("modal-video-player", this.cs.modalWidth, this.cs.modalHeight);
+    }
+
+    showModal( show = true ) {
+        if( this.gs.viewer === "modal" ) {
+            this.setModalElementData();
+            this._element('modal-viewer').style.display =  show ? 'block' : 'none';
+        }
+    }
+
+    hideModal() {
+        this._element('modal-viewer').style.display = 'none';
+    }
+
+    buildIcon(item, prefix, listener) {
+        let elem = document.createElement("ha-icon");
+        elem.classList.add(`aarlo-icon-${this._sizeSuffix()}`);
+        elem.addEventListener('click', listener);
+        elem.id = this._id(`${prefix}${item}`);
+        return elem
+    }
+
+    buildText(item, prefix) {
+        let elem = document.createElement("span");
+        elem.classList.add(`${prefix}-${item}`);
+        elem.classList.add(`aarlo-text-${this._sizeSuffix()}`);
+        elem.id = this._id(`${prefix}${item}`);
+        return elem
+    }
+
+    buildGap() {
+        let elem = document.createElement("span");
+        elem.innerHTML = "&nbsp";
+        return elem
+    }
+
+    /**
+     * Generate a new image URL.
+     *
+     * This is done when Arlo changes the image or Home Assistance changes
+     * the authentication token. We always add the current time to the end to
+     * force the browser to reload.
+     *
+     * It makes no attempt to reload the image.
+     */
+
+    // RECORDING VIEW
+
+    /**
+     * Setup the callbacks on recording/stream view
+     */
+
+ 
+
+    updateView() {
+        this.updateStatuses();
+        this.updateImageView();
+        this.updateLibraryView();
+        this.updateRecordingView();
+        this.updateStreamView();
+    }
+
+    /**
+     * Get every ready.
+     *
+     * Run when render() is called. The function will keep calling
+     * itself until initialization is complete. What is does:
+     *  - load the card's language pack
+     *  - load the camera libraries
+     *  - wait for the render to be added to the DOM
+     *  - set up static view configuration
+     *  - open initial view
+     *
+     * @param lang_loaded true if language is loaded
+     * @param lib_loaded true if libraries are loaded
+     */
+    initialSetup( lang_loaded = false, lib_loaded = false ) {
+
+        // Load language pack
+        if( !lang_loaded ) {
+            this.asyncLoadLanguage().finally( () => {
+                this.initialSetup( true, false );
+            });
+            return
+        }
+
+        // Now load the libraries.
+        if( !lib_loaded ) {
+            this.asyncLoadLibraries().then( () => {
+                this.initialSetup( true, true );
+            });
+            return
+        }
+
+        // Now wait for the elements to be added to the shadow DOM.
+        if( this._element("camera-viewer") === null ) {
+            this._log( 'waiting for an element ' );
+            setTimeout( () => {
+                this.initialSetup( true, true );
+            }, 100);
+            return
+        }
+
+        // If we are here:
+        //  - language packs are in
+        //  - library are loaded
+        //  - DOM is ready
+        this._ready = "ready";
+
+        // Set initial state
+        this.updateStatuses();
+
+        // Install the static stuff.
+        this.setupImageView();
+        this.setupLibraryView();
+        this.setupVideoView();
+        this.setupImageHandlers();
+        this.setupLibraryHandlers();
+        this.setupVideoHandlers();
+
+        // And go...
+        this.updateImageView();
+        this.updateLibraryView();
+        this.showImageView();
+    }
+
+    resetView() {
+        if ( this.ls.showing ) {
+            this.showLibraryView();
+        } else {
+            this.showImageView();
+        }
+    }
+
+    async wsLoadLibrary( index ) {
+        try {
+            const library = await this._hass.callWS({
+                type: "foscam_library",
+                entity_id: this._cc[index].id,
+                at_most: this._lc[index].recordings,
+            });
+            return (library && library.videos && library.videos.length > 0) ? library.videos : [];
+        } catch (err) {
+            this._log(`wsLoadLibrary failed: ${err}`);
+            return [];
+        }
+    }
+
+    async wsStartStream() {
+        try {
+            /**
+             * Direct Arlo Cloud Playback
+             * Only when explicitly requested via `arlo-stream` in image_view.
+             */
+            if (this.cc.arloPlay) {
+                let ua = this.gc.isAndroid ? "linux" : navigator.userAgent;
+                return await this._hass.callWS({
+                    type: "aarlo_stream_url",
+                    entity_id: this.cc.id,
+                    user_agent: ua,
+                });
+            }
+
+            /**
+             * Home Assistant Playback (Default)
+             * Standard HLS stream proxied through Home Assistant.
+             */
+            return await this._hass.callWS({
+                type: "camera/stream",
+                entity_id: this.cc.id,
+            });
+        } catch (err) {
+            throw new Error(`wsStartStream failed: ${err}`);
+        }
+    }
+
+    async wsStopStream() {
+        try {
+            return await this._hass.callWS({
+                type: "aarlo_stop_activity",
+                entity_id: this.cc.id,
+            })
+        } catch (err) {
+            throw new Error(`wsStopStream failed: ${err}`)
+        }
+        
+    }
+
+    async wsUpdateSnapshot() {
+        try {
+            return await this._hass.callWS({
+                type: "aarlo_request_snapshot",
+                entity_id: this.cc.id
+            })
+        } catch (err) {
+            throw new Error(`wsUpdateSnapshot failed: ${err}`)
+        }
+    }
+
+    updateSnapshot() {
+        this.generateImageURL();
+        this.updateImageView();
+    }
+
+                                
+
+    async asyncLoadLanguage() {
+        this._i = DEFAULT_MESSAGES;
+        let lang = this.gc.lang ? this.gc.lang : (this._hass && this._hass.language ? this._hass.language : "en");
+
+        if (lang.toLowerCase().startsWith("en")) {
+            return;
+        }
+
+        // Try language, then language prefix (e.g. pt-BR -> pt)
+        const candidates = [lang.toLowerCase()];
+        if (lang.includes("-")) {
+            candidates.push(lang.split("-")[0].toLowerCase());
+        }
+
+        for (const candidate of candidates) {
+            try {
+                this._log(`importing ${candidate} language`);
+                const module = await import(`https://cdn.jsdelivr.net/gh/twrecked/lovelace-hass-aarlo@master/lang/${candidate}.js`);
+                if (module && module.messages) {
+                    this._i = {
+                        ...DEFAULT_MESSAGES,
+                        ...module.messages,
+                        image: { ...DEFAULT_MESSAGES.image, ...(module.messages.image || {}) },
+                        library: { ...DEFAULT_MESSAGES.library, ...(module.messages.library || {}) },
+                        video: { ...DEFAULT_MESSAGES.video, ...(module.messages.video || {}) },
+                        status: { ...DEFAULT_MESSAGES.status, ...(module.messages.status || {}) },
+                        trigger: { ...DEFAULT_MESSAGES.trigger, ...(module.messages.trigger || {}) },
+                        state: { ...DEFAULT_MESSAGES.state, ...(module.messages.state || {}) },
+                    };
+                    return;
+                }
+            } catch (err) {
+                this._log(`failed to load language pack: ${candidate}`);
+            }
+        }
+    }
+
+    /**
+     * Asynchronously load a camera's library.
+     *
+     * Because this operates in the background we save the camera index
+     * and operate on the library state (_ls) directly.
+     *
+     * @param index camera to index to use
+     * @returns {Promise<void>}
+     */
+    async asyncLoadLibrary( index ) {
+        try {
+            this._ls[index].recordings = await this.wsLoadLibrary( index );
+        } catch(err) {
+            this._log(err);
+            this._ls[index].recordings = [];
+        }
+    }
+
+    async asyncLoadLibraries( ) {
+        for( let i = 0; i < this._cameraCount; i++ ) {
+            await this.asyncLoadLibrary(i);
+        }
+        this.mergeLibraries();
+    }
+
+  
+
+}
+
+Object.assign(
+    FoscamGlance.prototype,
+    ImageViewMixin,
+    LibraryViewMixin,
+    StreamViewMixin,
+    PtzViewMixin
+);
+
+const TOP_WIDGET_OPTIONS = [
+    { value: "name", label: "Camera Name" },
+    { value: "status", label: "Status (Idle/Streaming/etc)" },
+    { value: "date", label: "Date / Time of Capture" },
+];
+
+const BOTTOM_WIDGET_OPTIONS = [
+    { value: "battery", label: "Battery Level" },
+    { value: "signal", label: "Signal Strength" },
+    { value: "library", label: "Library / Recordings" },
+    { value: "motion", label: "Motion Detection" },
+    { value: "sound", label: "Audio Detection" },
+    { value: "stream", label: "Live Stream Toggle" },
+    { value: "snapshot", label: "Take Snapshot" },
+    { value: "onoff", label: "Camera On/Off" },
+    { value: "lock", label: "Door Lock" },
+    { value: "light", label: "Light" },
+    { value: "siren", label: "Siren" },
+    { value: "bell", label: "Doorbell" },
+    { value: "door", label: "Door Contact" },
+    { value: "lock2", label: "Door Lock #2" },
+    { value: "light2", label: "Light #2" },
+    { value: "bell2", label: "Doorbell #2" },
+    { value: "door2", label: "Door Contact #2" },
+    { value: "previous", label: "Previous Camera (Multi-cam)" },
+    { value: "next", label: "Next Camera (Multi-cam)" },
+];
+
+const EDITOR_SCHEMA = [
+    { name: "entity", selector: { entity: { domain: "camera" } } },
+    { name: "name", selector: { text: {} } },
+    {
+        name: "image_click",
+        selector: {
+            select: {
+                options: [
+                    { value: "stream", label: "Live Stream" },
+                    { value: "recording", label: "Last Recording" },
+                ],
+            },
+        },
+    },
+    {
+        name: "top_left",
+        selector: {
+            select: {
+                multiple: true,
+                options: TOP_WIDGET_OPTIONS,
+            },
+        },
+    },
+    {
+        name: "top_right",
+        selector: {
+            select: {
+                multiple: true,
+                options: TOP_WIDGET_OPTIONS,
+            },
+        },
+    },
+    {
+        name: "bottom_left",
+        selector: {
+            select: {
+                multiple: true,
+                options: BOTTOM_WIDGET_OPTIONS,
+            },
+        },
+    },
+    {
+        name: "bottom_right",
+        selector: {
+            select: {
+                multiple: true,
+                options: BOTTOM_WIDGET_OPTIONS,
+            },
+        },
+    },
+    { name: "door_lock", selector: { entity: { domain: "lock" } } },
+    { name: "light", selector: { entity: { domain: "light" } } },
+    { name: "siren", selector: { entity: { domain: "siren" } } },
+    { name: "door_bell", selector: { entity: { domain: "binary_sensor" } } },
+    { name: "door_bell_mute", selector: { entity: { domain: "switch" } } },
+    { name: "door", selector: { entity: { domain: "binary_sensor" } } },
+    { name: "library_sizes", selector: { text: {} } },
+    { name: "logging", selector: { boolean: {} } },
+];
+
+class FoscamGlanceEditor extends HTMLElement {
+    constructor() {
+        super();
+        this._config = null;
+        this._hass = null;
+        this._form = null;
+    }
+
+    setConfig(config) {
+        this._config = { ...config };
+        this.render();
+    }
+
+    set hass(hass) {
+        this._hass = hass;
+        if (this._form) {
+            this._form.hass = hass;
+        }
+    }
+
+    connectedCallback() {
+        this.render();
+    }
+
+    _computeLabel(schema) {
+        const labels = {
+            entity: "Camera Entity",
+            name: "Display Name (Optional)",
+            image_click: "Click Preview Action",
+            top_left: "Top Bar Widgets (Left)",
+            top_right: "Top Bar Widgets (Right)",
+            bottom_left: "Bottom Bar Widgets (Left)",
+            bottom_right: "Bottom Bar Widgets (Right)",
+            door_lock: "Door Lock",
+            light: "Light",
+            siren: "Siren",
+            door_bell: "Doorbell Sensor",
+            door_bell_mute: "Doorbell Mute Switch",
+            door: "Door Contact Sensor",
+            library_sizes: "Library Grid Sizes (e.g. 2,3,4)",
+            logging: "Enable Debug Logging",
+        };
+        return labels[schema.name] || schema.name;
+    }
+
+    _parseWidgets(field) {
+        if (!field) return [[], []];
+        const raw = Array.isArray(field) ? field.join("|") : String(field);
+        const parts = raw.split("|");
+        const left = parts[0] ? parts[0].split(",").map((s) => s.trim()).filter(Boolean) : [];
+        const right = parts[1] ? parts[1].split(",").map((s) => s.trim()).filter(Boolean) : [];
+        return [left, right];
+    }
+
+    _valueChanged(ev) {
+        if (!this._config || !this._hass) return;
+        const value = ev.detail.value;
+        const newConfig = { ...this._config };
+
+        for (const [k, v] of Object.entries(value)) {
+            if (v === "" || v === undefined) {
+                delete newConfig[k];
+            } else {
+                newConfig[k] = v;
+            }
+        }
+
+        const topL = (value.top_left || []).join(",");
+        const topR = (value.top_right || []).join(",");
+        if (topL || topR) {
+            newConfig.image_top = topR ? `${topL}|${topR}` : topL;
+        } else {
+            delete newConfig.image_top;
+        }
+
+        const bottomL = (value.bottom_left || []).join(",");
+        const bottomR = (value.bottom_right || []).join(",");
+        if (bottomL || bottomR) {
+            newConfig.image_bottom = bottomR ? `${bottomL}|${bottomR}` : bottomL;
+        } else {
+            delete newConfig.image_bottom;
+        }
+
+        delete newConfig.top_left;
+        delete newConfig.top_right;
+        delete newConfig.bottom_left;
+        delete newConfig.bottom_right;
+
+        this._config = newConfig;
+        const event = new CustomEvent("config-changed", {
+            bubbles: true,
+            composed: true,
+            detail: { config: newConfig },
+        });
+        this.dispatchEvent(event);
+    }
+
+    render() {
+        if (!this._hass || !this._config) return;
+
+        if (!this._form) {
+            this.innerHTML = `
+                <style>
+                    .card-config {
+                        padding: 16px 0;
+                    }
+                </style>
+                <div class="card-config">
+                    <ha-form></ha-form>
+                </div>
+            `;
+            this._form = this.querySelector("ha-form");
+            this._form.addEventListener("value-changed", (ev) => this._valueChanged(ev));
+            this._form.computeLabel = (s) => this._computeLabel(s);
+        }
+
+        const [topLeft, topRight] = this._parseWidgets(this._config.image_top);
+        const [bottomLeft, bottomRight] = this._parseWidgets(this._config.image_bottom);
+
+        const formData = {
+            ...this._config,
+            top_left: topLeft,
+            top_right: topRight,
+            bottom_left: bottomLeft,
+            bottom_right: bottomRight,
+        };
+
+        this._form.hass = this._hass;
+        this._form.schema = EDITOR_SCHEMA;
+        this._form.data = formData;
+    }
+}
+
+function loadScript(src) {
+    return new Promise((resolve) => {
+        const script = document.createElement("script");
+        script.src = src;
+        script.onload = () => resolve(true);
+        script.onerror = () => resolve(false);
+        document.head.appendChild(script);
+    });
+}
+
+(async function loadMediaLibraries() {
+    if (!window.Hls) {
+        await loadScript("https://cdn.jsdelivr.net/npm/hls.js@1.5.8/dist/hls.min.js");
+    }
+})();
+
+if (!customElements.get("foscam-glance-editor")) {
+    customElements.define("foscam-glance-editor", FoscamGlanceEditor);
+}
+
+if (!customElements.get("foscam-glance")) {
+    customElements.define("foscam-glance", FoscamGlance);
+}
+
+// Backward compatibility alias for aarlo-glance
+if (!customElements.get("aarlo-glance")) {
+    customElements.define("aarlo-glance", FoscamGlance);
+}
+
+console.info(
+    `%c FOSCAM-GLANCE %c ${CARD_VERSION} `,
+    "color: white; background: #009688; font-weight: 700;",
+    "color: #009688; background: white; font-weight: 700;"
+);
+
+window.customCards = window.customCards || [];
+if (!window.customCards.some((card) => card.type === "foscam-glance")) {
+    window.customCards.push({
+        type: "foscam-glance",
+        name: "Foscam Glance Card",
+        description: "Foscam camera glance card with live streaming, PTZ controls, and saved clips library",
+        preview: true,
+    });
+}
+
+export { FoscamGlance, FoscamGlanceEditor };
+//# sourceMappingURL=hass-aarlo.js.map
