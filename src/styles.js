@@ -107,10 +107,16 @@ export const CARD_STYLES = `
             transition: opacity 0.25s ease-in-out;
             pointer-events: auto;
         }
+        .aarlo-base, .camera-container {
+            position: relative;
+            overflow: hidden;
+        }
         .ptz-hover-mode {
             opacity: 0;
         }
+        .aarlo-base:hover .ptz-hover-mode,
         .camera-container:hover .ptz-hover-mode,
+        ha-card:hover .ptz-hover-mode,
         .ptz-active {
             opacity: 1 !important;
         }

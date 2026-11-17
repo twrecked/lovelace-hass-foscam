@@ -179,10 +179,16 @@ const CARD_STYLES = `
             transition: opacity 0.25s ease-in-out;
             pointer-events: auto;
         }
+        .aarlo-base, .camera-container {
+            position: relative;
+            overflow: hidden;
+        }
         .ptz-hover-mode {
             opacity: 0;
         }
+        .aarlo-base:hover .ptz-hover-mode,
         .camera-container:hover .ptz-hover-mode,
+        ha-card:hover .ptz-hover-mode,
         .ptz-active {
             opacity: 1 !important;
         }
@@ -508,7 +514,7 @@ const ImageViewMixin = {
             this.buildImageRow(this._element('bottom-bar'), this.cc.image_bottom);
         }
 
-        const container = this._element('camera-container');
+        const container = this._element('camera-container') || this._element('aarlo-wrapper');
         if (container) {
             const existingPtz = container.querySelector('.ptz-overlay');
             if (existingPtz) existingPtz.remove();
@@ -1047,9 +1053,15 @@ const StreamViewMixin = {
 
     buildVideoControl(element, prefix) {
         element.innerHTML = '';
-        element.appendChild(this.buildVideoIconDiv(["video-door-lock", "video-door2-lock",
-                        "video-light-on", "video-light2-on", "video-siren-on", "video-toggle-sound", "video-play-pause", "video-stop"],
-                        prefix));
+        const controls = [];
+        if (this.cc.doorLockId) controls.push("video-door-lock");
+        if (this.cc.door2LockId) controls.push("video-door2-lock");
+        if (this.cc.lightId) controls.push("video-light-on");
+        if (this.cc.light2Id) controls.push("video-light2-on");
+        if (this.cc.sirenId) controls.push("video-siren-on");
+        controls.push("video-toggle-sound", "video-play-pause", "video-stop");
+
+        element.appendChild(this.buildVideoIconDiv(controls, prefix));
         element.appendChild(this.buildVideoSeekDiv(prefix));
         element.appendChild(this.buildVideoIconDiv(["video-full-screen"], prefix));
     },
@@ -2052,8 +2064,8 @@ class FoscamGlance extends HTMLElement {
                 </div>
             </div>
             <ha-card>
-                <div class="aarlo-base aarlo-aspect-${this.gc.aspectRatio}"
-                     id="${this._id('aarlo-wrapper')}">
+                <div class="aarlo-base aarlo-aspect-${this.gc.aspectRatio} camera-container"
+                     id="${this._id('camera-container')}">
                     <video class="aarlo-video"
                            id="${this._id('video-player')}"
                            style="display:none" playsinline muted>
@@ -3071,37 +3083,12 @@ class FoscamGlance extends HTMLElement {
                 }
             }
 
-            // Spotlight / light resolution
-            if (!config.light && !cc.lightId) {
-                const lightCandidates = [
-                    `light.aarlo_${camera}_spotlight`,
-                    `light.aarlo_spotlight_${camera}`,
-                    `light.aarlo_${camera}`,
-                    `light.${camera}_spotlight`,
-                ];
-                for (const lid of lightCandidates) {
-                    if (lid in hass.states) {
-                        cc.lightId = lid;
-                        break;
-                    }
-                }
+            // Explicit light / siren (only if specified in config)
+            if (config.light) {
+                cc.lightId = config.light;
             }
-
-            // Siren resolution
-            if (!config.siren && !cc.sirenId) {
-                const sirenCandidates = [
-                    `siren.aarlo_${camera}_siren`,
-                    `siren.aarlo_siren_${camera}`,
-                    `siren.aarlo_${camera}`,
-                    `siren.${camera}_siren`,
-                    `siren.aarlo_all_sirens`,
-                ];
-                for (const sid of sirenCandidates) {
-                    if (sid in hass.states) {
-                        cc.sirenId = sid;
-                        break;
-                    }
-                }
+            if (config.siren) {
+                cc.sirenId = config.siren;
             }
         }
         if (this.gc && this.cc && this.cc.id) {

@@ -70,8 +70,8 @@ export class FoscamGlance extends HTMLElement {
                 </div>
             </div>
             <ha-card>
-                <div class="aarlo-base aarlo-aspect-${this.gc.aspectRatio}"
-                     id="${this._id('aarlo-wrapper')}">
+                <div class="aarlo-base aarlo-aspect-${this.gc.aspectRatio} camera-container"
+                     id="${this._id('camera-container')}">
                     <video class="aarlo-video"
                            id="${this._id('video-player')}"
                            style="display:none" playsinline muted>
@@ -1089,37 +1089,12 @@ export class FoscamGlance extends HTMLElement {
                 }
             }
 
-            // Spotlight / light resolution
-            if (!config.light && !cc.lightId) {
-                const lightCandidates = [
-                    `light.aarlo_${camera}_spotlight`,
-                    `light.aarlo_spotlight_${camera}`,
-                    `light.aarlo_${camera}`,
-                    `light.${camera}_spotlight`,
-                ];
-                for (const lid of lightCandidates) {
-                    if (lid in hass.states) {
-                        cc.lightId = lid;
-                        break;
-                    }
-                }
+            // Explicit light / siren (only if specified in config)
+            if (config.light) {
+                cc.lightId = config.light;
             }
-
-            // Siren resolution
-            if (!config.siren && !cc.sirenId) {
-                const sirenCandidates = [
-                    `siren.aarlo_${camera}_siren`,
-                    `siren.aarlo_siren_${camera}`,
-                    `siren.aarlo_${camera}`,
-                    `siren.${camera}_siren`,
-                    `siren.aarlo_all_sirens`,
-                ];
-                for (const sid of sirenCandidates) {
-                    if (sid in hass.states) {
-                        cc.sirenId = sid;
-                        break;
-                    }
-                }
+            if (config.siren) {
+                cc.sirenId = config.siren;
             }
         }
         if (this.gc && this.cc && this.cc.id) {

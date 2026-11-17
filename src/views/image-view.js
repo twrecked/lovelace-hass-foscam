@@ -114,7 +114,7 @@ export const ImageViewMixin = {
             this.buildImageRow(this._element('bottom-bar'), this.cc.image_bottom)
         }
 
-        const container = this._element('camera-container')
+        const container = this._element('camera-container') || this._element('aarlo-wrapper')
         if (container) {
             const existingPtz = container.querySelector('.ptz-overlay')
             if (existingPtz) existingPtz.remove()

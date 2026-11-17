@@ -27,9 +27,15 @@ export const StreamViewMixin = {
 
     buildVideoControl(element, prefix) {
         element.innerHTML = ''
-        element.appendChild(this.buildVideoIconDiv(["video-door-lock", "video-door2-lock",
-                        "video-light-on", "video-light2-on", "video-siren-on", "video-toggle-sound", "video-play-pause", "video-stop"],
-                        prefix));
+        const controls = []
+        if (this.cc.doorLockId) controls.push("video-door-lock")
+        if (this.cc.door2LockId) controls.push("video-door2-lock")
+        if (this.cc.lightId) controls.push("video-light-on")
+        if (this.cc.light2Id) controls.push("video-light2-on")
+        if (this.cc.sirenId) controls.push("video-siren-on")
+        controls.push("video-toggle-sound", "video-play-pause", "video-stop")
+
+        element.appendChild(this.buildVideoIconDiv(controls, prefix));
         element.appendChild(this.buildVideoSeekDiv(prefix));
         element.appendChild(this.buildVideoIconDiv(["video-full-screen"], prefix));
     },
