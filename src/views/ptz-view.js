@@ -152,6 +152,7 @@ export const PtzViewMixin = {
             return;
         }
         try {
+            this._log(`Performing PTZ: ${movement} on ${this.cc.id} (travel_time=${this.cc.ptzTravelTime})`);
             await this._hass.callService("foscam", "ptz", {
                 entity_id: this.cc.id,
                 movement: movement,
@@ -167,6 +168,7 @@ export const PtzViewMixin = {
             return;
         }
         try {
+            this._log(`Moving to preset: ${presetName} on ${this.cc.id}`);
             await this._hass.callService("foscam", "ptz_preset", {
                 entity_id: this.cc.id,
                 preset_name: presetName,

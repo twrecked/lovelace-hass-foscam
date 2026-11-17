@@ -961,8 +961,26 @@ export class FoscamGlance extends HTMLElement {
         }
 
         // Save layout
-        cc.image_top = config.image_top
-        cc.image_bottom = config.image_bottom
+        cc.image_top = config.image_top || "name,status"
+        cc.image_bottom = config.image_bottom || "motion,library,ptz,snapshot"
+
+        // PTZ configuration
+        const ptzCfg = (typeof config.ptz === "object" && config.ptz !== null) ? config.ptz : {}
+        const ptzDisabled = (config.ptz === false || config.show_ptz === false || ptzCfg.show === false || config.ptz_mode === "off")
+        cc.showPtz = !ptzDisabled
+        cc.ptzMode = _value(config.ptz_mode || ptzCfg.mode, "always")
+        cc.ptzTravelTime = _value_float(config.ptz_travel_time || ptzCfg.travel_time, 0.125)
+        cc.showPresets = (config.show_presets !== undefined) ? config.show_presets : (ptzCfg.show_presets !== false)
+
+        let presetsList = []
+        if (config.ptz_presets) {
+            presetsList = _array(config.ptz_presets, [])
+        } else if (ptzCfg.presets) {
+            presetsList = _array(ptzCfg.presets, [])
+        } else if (config.presets) {
+            presetsList = _array(config.presets, [])
+        }
+        cc.presets = presetsList.map(p => String(p).trim()).filter(Boolean)
 
         // How do we display recordings or stream?
         cc.arloPlay          = _includes(config.image_view, "arlo-stream")

@@ -162,6 +162,13 @@ export const ImageViewMixin = {
 
     updateImageView() {
         this._set("camera-name", {text: this.cc.name})
+        if (this.cc.showPtz) {
+            this._set("camera-ptz", {
+                title: "PTZ Controls",
+                icon: this.ls.showPtz ? "mdi:camera-control" : "mdi:pan",
+                state: this.ls.showPtz ? "on" : "off",
+            })
+        }
         this.updatePtzControls()
     
         for (const item in this.cs.details) {

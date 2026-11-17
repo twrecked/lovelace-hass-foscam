@@ -423,11 +423,19 @@ export const StreamViewMixin = {
     
         this._mhide("video-play-pause")
         this._mhide("video-seek")
-        this._mshow("video-door-lock", this.cc.doorLockId !== null);
-        this._mshow("video-door2-lock", this.cc.door2LockId !== null);
-        this._mshow("video-light-on", this.cc.lightId !== null);
-        this._mshow("video-light2-on", this.cc.light2Id !== null);
-        this._mshow("video-siren-on", this.cc.sirenId !== null);
+        this._mshow("video-door-lock", !!this.cc.doorLockId);
+        this._mshow("video-door2-lock", !!this.cc.door2LockId);
+        this._mshow("video-light-on", !!this.cc.lightId);
+        this._mshow("video-light2-on", !!this.cc.light2Id);
+        this._mshow("video-siren-on", !!this.cc.sirenId);
+        this._mshow("video-ptz-toggle", !!this.cc.showPtz);
+        if (this.cc.showPtz) {
+            this._mset("video-ptz-toggle", {
+                title: "PTZ Controls",
+                icon: this.ls.showPtz ? "mdi:camera-control" : "mdi:pan",
+                state: this.ls.showPtz ? "on" : "off",
+            });
+        }
         this.showVideoControls(4);
     
         this._mset('video-player', {poster: this.gs.poster})

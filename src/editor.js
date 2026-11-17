@@ -5,25 +5,21 @@ export const TOP_WIDGET_OPTIONS = [
 ];
 
 export const BOTTOM_WIDGET_OPTIONS = [
-    { value: "battery", label: "Battery Level" },
-    { value: "signal", label: "Signal Strength" },
-    { value: "library", label: "Library / Recordings" },
+    { value: "ptz", label: "PTZ Controls Toggle" },
     { value: "motion", label: "Motion Detection" },
     { value: "sound", label: "Audio Detection" },
     { value: "stream", label: "Live Stream Toggle" },
     { value: "snapshot", label: "Take Snapshot" },
+    { value: "library", label: "Library / Recordings" },
     { value: "onoff", label: "Camera On/Off" },
-    { value: "lock", label: "Door Lock" },
-    { value: "light", label: "Light" },
-    { value: "siren", label: "Siren" },
-    { value: "bell", label: "Doorbell" },
-    { value: "door", label: "Door Contact" },
-    { value: "lock2", label: "Door Lock #2" },
-    { value: "light2", label: "Light #2" },
-    { value: "bell2", label: "Doorbell #2" },
-    { value: "door2", label: "Door Contact #2" },
-    { value: "previous", label: "Previous Camera (Multi-cam)" },
-    { value: "next", label: "Next Camera (Multi-cam)" },
+    { value: "light", label: "Paired Light (Optional)" },
+    { value: "siren", label: "Paired Siren (Optional)" },
+];
+
+export const PTZ_MODE_OPTIONS = [
+    { value: "always", label: "Always Visible (Overlay on Stream & Image)" },
+    { value: "hover", label: "Visible on Hover (Desktop) / Tap (Mobile)" },
+    { value: "off", label: "Disabled (Hide PTZ Controls)" },
 ];
 
 export const EDITOR_SCHEMA = [
@@ -39,6 +35,34 @@ export const EDITOR_SCHEMA = [
                 ],
             },
         },
+    },
+    {
+        name: "show_ptz",
+        selector: { boolean: {} },
+    },
+    {
+        name: "ptz_mode",
+        selector: {
+            select: {
+                options: PTZ_MODE_OPTIONS,
+            },
+        },
+    },
+    {
+        name: "ptz_travel_time",
+        selector: {
+            number: {
+                min: 0.05,
+                max: 1.0,
+                step: 0.025,
+                mode: "box",
+                unit_of_measurement: "sec",
+            },
+        },
+    },
+    {
+        name: "ptz_presets",
+        selector: { text: {} },
     },
     {
         name: "top_left",
@@ -76,12 +100,8 @@ export const EDITOR_SCHEMA = [
             },
         },
     },
-    { name: "door_lock", selector: { entity: { domain: "lock" } } },
     { name: "light", selector: { entity: { domain: "light" } } },
     { name: "siren", selector: { entity: { domain: "siren" } } },
-    { name: "door_bell", selector: { entity: { domain: "binary_sensor" } } },
-    { name: "door_bell_mute", selector: { entity: { domain: "switch" } } },
-    { name: "door", selector: { entity: { domain: "binary_sensor" } } },
     { name: "library_sizes", selector: { text: {} } },
     { name: "logging", selector: { boolean: {} } },
 ];
@@ -115,16 +135,16 @@ export class FoscamGlanceEditor extends HTMLElement {
             entity: "Camera Entity",
             name: "Display Name (Optional)",
             image_click: "Click Preview Action",
+            show_ptz: "Enable PTZ D-Pad & Controls",
+            ptz_mode: "PTZ Display Mode",
+            ptz_travel_time: "PTZ Step Travel Time",
+            ptz_presets: "Presets Override (Comma-separated, blank for auto-detect)",
             top_left: "Top Bar Widgets (Left)",
             top_right: "Top Bar Widgets (Right)",
             bottom_left: "Bottom Bar Widgets (Left)",
             bottom_right: "Bottom Bar Widgets (Right)",
-            door_lock: "Door Lock",
-            light: "Light",
-            siren: "Siren",
-            door_bell: "Doorbell Sensor",
-            door_bell_mute: "Doorbell Mute Switch",
-            door: "Door Contact Sensor",
+            light: "Optional Paired Light",
+            siren: "Optional Paired Siren",
             library_sizes: "Library Grid Sizes (e.g. 2,3,4)",
             logging: "Enable Debug Logging",
         };
@@ -202,11 +222,25 @@ export class FoscamGlanceEditor extends HTMLElement {
             this._form.computeLabel = (s) => this._computeLabel(s);
         }
 
-        const [topLeft, topRight] = this._parseWidgets(this._config.image_top);
-        const [bottomLeft, bottomRight] = this._parseWidgets(this._config.image_bottom);
+        const [topLeft, topRight] = this._parseWidgets(this._config.image_top || "name,status");
+        const [bottomLeft, bottomRight] = this._parseWidgets(
+            this._config.image_bottom || "motion,library,ptz,snapshot"
+        );
+
+        const ptzCfg = this._config.ptz || {};
+        const showPtz = this._config.show_ptz !== undefined
+            ? this._config.show_ptz
+            : (ptzCfg.show !== undefined ? ptzCfg.show : true);
+        const ptzMode = this._config.ptz_mode || ptzCfg.mode || "always";
+        const ptzTravel = this._config.ptz_travel_time || ptzCfg.travel_time || 0.125;
+        const ptzPresets = this._config.ptz_presets || (Array.isArray(ptzCfg.presets) ? ptzCfg.presets.join(", ") : "");
 
         const formData = {
             ...this._config,
+            show_ptz: showPtz,
+            ptz_mode: ptzMode,
+            ptz_travel_time: ptzTravel,
+            ptz_presets: ptzPresets,
             top_left: topLeft,
             top_right: topRight,
             bottom_left: bottomLeft,
@@ -218,4 +252,3 @@ export class FoscamGlanceEditor extends HTMLElement {
         this._form.data = formData;
     }
 }
-
