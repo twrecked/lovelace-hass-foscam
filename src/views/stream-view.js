@@ -33,6 +33,7 @@ export const StreamViewMixin = {
         if (this.cc.lightId) controls.push("video-light-on")
         if (this.cc.light2Id) controls.push("video-light2-on")
         if (this.cc.sirenId) controls.push("video-siren-on")
+        if (this.cc.showPtz) controls.push("video-ptz-toggle")
         controls.push("video-toggle-sound", "video-play-pause", "video-stop")
 
         element.appendChild(this.buildVideoIconDiv(controls, prefix));
@@ -43,7 +44,10 @@ export const StreamViewMixin = {
     videoIconClicked(evt) {
         const id = evt.target.id;
     
-        if (id.includes("video-play-pause")) {
+        if (id.includes("video-ptz-toggle")) {
+            this.togglePtzControls();
+            return;
+        } else if (id.includes("video-play-pause")) {
             this.controlPlayPause();
         } else if (id.includes("video-toggle-sound")) {
             this.controlToggleSound();
@@ -454,6 +458,14 @@ export const StreamViewMixin = {
         } else {
             this._mset("video-toggle-sound", {icon:"mdi:volume-high"})
         }
+        if (this.cc.showPtz) {
+            this._mset("video-ptz-toggle", {
+                title: "PTZ Controls",
+                icon: this.ls.showPtz ? "mdi:camera-control" : "mdi:pan",
+                state: this.ls.showPtz ? "on" : "off",
+            });
+        }
+        this.updatePtzControls();
     },
 
     showStreamView() {

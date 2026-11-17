@@ -105,6 +105,39 @@ const CARD_STYLES = `
             min-height: 48px;
             overflow: hidden;
         }
+        .aarlo-base, .camera-container {
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            background: #000;
+        }
+        .aarlo-aspect-16x9 {
+            padding-top: 56.25%;
+        }
+        .aarlo-aspect-4x3 {
+            padding-top: 75%;
+        }
+        .aarlo-aspect-1x1 {
+            padding-top: 100%;
+        }
+        .aarlo-image, .camera-image {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            display: block;
+        }
+        .aarlo-video, .stream-video {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            height: auto;
+            transform: translate(-50%, -50%);
+            display: block;
+        }
         .box {
             white-space: nowrap;
             overflow: hidden;
@@ -112,12 +145,12 @@ const CARD_STYLES = `
             position: absolute;
             left: 0;
             right: 0;
-            background-color: rgba(0, 0, 0, 0.4);
+            background-color: rgba(0, 0, 0, 0.45);
             padding: 4px 8px;
             color: white;
             display: flex;
             justify-content: space-between;
-            z-index: 2;
+            z-index: 10;
         }
         .box-top {
             top: 0;
@@ -129,13 +162,13 @@ const CARD_STYLES = `
             margin-left: 4px;
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
         }
         .box-align-right {
             margin-right: 4px;
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
         }
         .box-title {
             font-weight: 500;
@@ -145,25 +178,6 @@ const CARD_STYLES = `
             font-size: 12px;
             opacity: 0.9;
         }
-        .camera-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #000;
-        }
-        .camera-image {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
-        .stream-video {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
 
         /* PTZ D-Pad Overlay */
         .ptz-overlay {
@@ -172,28 +186,27 @@ const CARD_STYLES = `
             left: 50%;
             transform: translate(-50%, -50%);
             display: grid;
-            grid-template-columns: repeat(3, 40px);
-            grid-template-rows: repeat(3, 40px);
-            gap: 6px;
-            z-index: 5;
+            grid-template-columns: repeat(3, 44px);
+            grid-template-rows: repeat(3, 44px);
+            gap: 8px;
+            z-index: 25;
             transition: opacity 0.25s ease-in-out;
             pointer-events: auto;
         }
-        .aarlo-base, .camera-container {
-            position: relative;
-            overflow: hidden;
-        }
         .ptz-hover-mode {
             opacity: 0;
+            pointer-events: none;
         }
         .aarlo-base:hover .ptz-hover-mode,
         .camera-container:hover .ptz-hover-mode,
         ha-card:hover .ptz-hover-mode,
+        .ptz-visible,
         .ptz-active {
             opacity: 1 !important;
+            pointer-events: auto !important;
         }
         .ptz-btn {
-            background-color: rgba(0, 0, 0, 0.55);
+            background-color: rgba(0, 0, 0, 0.65);
             color: #fff;
             border-radius: 50%;
             display: flex;
@@ -202,53 +215,75 @@ const CARD_STYLES = `
             cursor: pointer;
             user-select: none;
             transition: background-color 0.15s, transform 0.1s;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
         .ptz-btn:hover {
-            background-color: rgba(3, 169, 244, 0.85);
+            background-color: rgba(3, 169, 244, 0.9);
+            border-color: #fff;
         }
         .ptz-btn:active {
             transform: scale(0.9);
             background-color: #0288d1;
         }
         .ptz-btn-stop {
-            background-color: rgba(244, 67, 54, 0.65);
+            background-color: rgba(244, 67, 54, 0.75);
         }
         .ptz-btn-stop:hover {
-            background-color: rgba(244, 67, 54, 0.9);
+            background-color: rgba(244, 67, 54, 0.95);
         }
 
         /* Presets Bar */
         .preset-bar {
             position: absolute;
-            bottom: 40px;
+            bottom: 45px;
             left: 0;
             right: 0;
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
             gap: 6px;
-            padding: 4px 8px;
-            z-index: 4;
+            padding: 6px 10px;
+            z-index: 24;
             transition: opacity 0.25s ease-in-out;
+            pointer-events: auto;
+        }
+        .preset-bar.ptz-hover-mode {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .aarlo-base:hover .preset-bar.ptz-hover-mode,
+        .camera-container:hover .preset-bar.ptz-hover-mode,
+        ha-card:hover .preset-bar.ptz-hover-mode,
+        .preset-bar.ptz-visible {
+            opacity: 1 !important;
+            pointer-events: auto !important;
         }
         .preset-chip {
-            background-color: rgba(0, 0, 0, 0.65);
+            background-color: rgba(0, 0, 0, 0.75);
             color: #fff;
-            border-radius: 12px;
-            padding: 2px 10px;
-            font-size: 11px;
+            border-radius: 14px;
+            padding: 3px 12px;
+            font-size: 12px;
             font-weight: 500;
             cursor: pointer;
             user-select: none;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-            transition: background-color 0.15s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: background-color 0.15s, transform 0.1s;
         }
         .preset-chip:hover {
             background-color: #03a9f4;
+            border-color: #fff;
         }
         .preset-chip:active {
             transform: scale(0.95);
+        }
+
+        /* Video controls slider */
+        input.slider {
+            width: 100%;
+            height: 4px;
         }
 
         /* Library modal & carousel */
@@ -449,6 +484,8 @@ const ImageViewMixin = {
             this.showOrStopStream();
         } else if (id.startsWith("camera-snapshot")) {
             this.updateSnapshot();
+        } else if (id.startsWith("camera-ptz")) {
+            this.togglePtzControls();
     
         } else if (id.startsWith("camera-door2")) {
             this.moreInfo(this.cc.door2Id);
@@ -514,18 +551,7 @@ const ImageViewMixin = {
             this.buildImageRow(this._element('bottom-bar'), this.cc.image_bottom);
         }
 
-        const container = this._element('camera-container') || this._element('aarlo-wrapper');
-        if (container) {
-            const existingPtz = container.querySelector('.ptz-overlay');
-            if (existingPtz) existingPtz.remove();
-            const existingPresets = container.querySelector('.preset-bar');
-            if (existingPresets) existingPresets.remove();
-
-            const ptz = this.buildPtzOverlay();
-            if (ptz) container.appendChild(ptz);
-            const presets = this.buildPresetBar();
-            if (presets) container.appendChild(presets);
-        }
+        this.updatePtzControls();
     
         if( this.gc.isMobile ) {
             this._hide("camera-previous");
@@ -571,6 +597,7 @@ const ImageViewMixin = {
 
     updateImageView() {
         this._set("camera-name", {text: this.cc.name});
+        this.updatePtzControls();
     
         for (const item in this.cs.details) {
             // noinspection JSUnfilteredForInLoop
@@ -1059,6 +1086,7 @@ const StreamViewMixin = {
         if (this.cc.lightId) controls.push("video-light-on");
         if (this.cc.light2Id) controls.push("video-light2-on");
         if (this.cc.sirenId) controls.push("video-siren-on");
+        if (this.cc.showPtz) controls.push("video-ptz-toggle");
         controls.push("video-toggle-sound", "video-play-pause", "video-stop");
 
         element.appendChild(this.buildVideoIconDiv(controls, prefix));
@@ -1069,7 +1097,10 @@ const StreamViewMixin = {
     videoIconClicked(evt) {
         const id = evt.target.id;
     
-        if (id.includes("video-play-pause")) {
+        if (id.includes("video-ptz-toggle")) {
+            this.togglePtzControls();
+            return;
+        } else if (id.includes("video-play-pause")) {
             this.controlPlayPause();
         } else if (id.includes("video-toggle-sound")) {
             this.controlToggleSound();
@@ -1478,6 +1509,14 @@ const StreamViewMixin = {
         } else {
             this._mset("video-toggle-sound", {icon:"mdi:volume-high"});
         }
+        if (this.cc.showPtz) {
+            this._mset("video-ptz-toggle", {
+                title: "PTZ Controls",
+                icon: this.ls.showPtz ? "mdi:camera-control" : "mdi:pan",
+                state: this.ls.showPtz ? "on" : "off",
+            });
+        }
+        this.updatePtzControls();
     },
 
     showStreamView() {
@@ -1884,17 +1923,17 @@ const StreamViewMixin = {
 
 const PtzViewMixin = {
     buildPtzOverlay() {
-        if (!this.cc.showPtz) {
+        if (!this.cc || !this.cc.showPtz) {
             return null;
         }
 
         const overlay = document.createElement("div");
         overlay.classList.add("ptz-overlay");
-        if (this.cc.ptzMode === "hover") {
+        const isVisible = (this.cc.ptzMode === "always") || this.ls.showPtz;
+        if (isVisible) {
+            overlay.classList.add("ptz-visible");
+        } else if (this.cc.ptzMode === "hover") {
             overlay.classList.add("ptz-hover-mode");
-        }
-        if (this.ls.showPtzTouch) {
-            overlay.classList.add("ptz-active");
         }
 
         const D_PAD = [
@@ -1936,7 +1975,7 @@ const PtzViewMixin = {
     },
 
     buildPresetBar() {
-        if (!this.cc.showPtz || !this.cc.showPresets) {
+        if (!this.cc || !this.cc.showPtz || !this.cc.showPresets) {
             return null;
         }
 
@@ -1947,11 +1986,11 @@ const PtzViewMixin = {
 
         const bar = document.createElement("div");
         bar.classList.add("preset-bar");
-        if (this.cc.ptzMode === "hover") {
+        const isVisible = (this.cc.ptzMode === "always") || this.ls.showPtz;
+        if (isVisible) {
+            bar.classList.add("ptz-visible");
+        } else if (this.cc.ptzMode === "hover") {
             bar.classList.add("ptz-hover-mode");
-        }
-        if (this.ls.showPtzTouch) {
-            bar.classList.add("ptz-active");
         }
 
         presets.forEach((name) => {
@@ -1974,12 +2013,61 @@ const PtzViewMixin = {
         if (Array.isArray(this.cc.presets) && this.cc.presets.length > 0) {
             return this.cc.presets;
         }
-        // Auto-discover from camera entity attributes if available
+        if (!this._hass || !this.cc || !this.cc.id) {
+            return [];
+        }
         const stateObj = this._hass.states[this.cc.id];
         if (stateObj && stateObj.attributes && Array.isArray(stateObj.attributes.preset_list)) {
             return stateObj.attributes.preset_list;
         }
         return [];
+    },
+
+    updatePtzControls() {
+        if (!this.cc || !this.cc.showPtz) {
+            return;
+        }
+        const container = this._element("camera-container") || this._element("aarlo-wrapper");
+        if (!container) {
+            return;
+        }
+
+        // 1. D-Pad overlay
+        let overlay = container.querySelector(".ptz-overlay");
+        if (!overlay) {
+            overlay = this.buildPtzOverlay();
+            if (overlay) container.appendChild(overlay);
+        } else {
+            const isVisible = (this.cc.ptzMode === "always") || this.ls.showPtz;
+            overlay.classList.toggle("ptz-visible", isVisible);
+            overlay.classList.toggle("ptz-hover-mode", this.cc.ptzMode === "hover" && !this.ls.showPtz);
+        }
+
+        // 2. Preset bar
+        let bar = container.querySelector(".preset-bar");
+        const presets = this.getPresets();
+        if (presets && presets.length > 0) {
+            if (!bar) {
+                bar = this.buildPresetBar();
+                if (bar) container.appendChild(bar);
+            } else {
+                const currentChips = Array.from(bar.querySelectorAll(".preset-chip")).map((c) => c.textContent);
+                if (JSON.stringify(currentChips) !== JSON.stringify(presets)) {
+                    bar.remove();
+                    const newBar = this.buildPresetBar();
+                    if (newBar) container.appendChild(newBar);
+                } else {
+                    const isVisible = (this.cc.ptzMode === "always") || this.ls.showPtz;
+                    bar.classList.toggle("ptz-visible", isVisible);
+                    bar.classList.toggle("ptz-hover-mode", this.cc.ptzMode === "hover" && !this.ls.showPtz);
+                }
+            }
+        }
+    },
+
+    togglePtzControls() {
+        this.ls.showPtz = !this.ls.showPtz;
+        this.updatePtzControls();
     },
 
     async performPtz(movement) {
@@ -3144,7 +3232,7 @@ class FoscamGlance extends HTMLElement {
             recordings: null,
             size:       -1,
             sizeIndex:  0,
-
+            showPtz:    true,
         }
     }
 

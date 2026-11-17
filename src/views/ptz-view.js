@@ -1,16 +1,16 @@
 export const PtzViewMixin = {
     buildPtzOverlay() {
-        if (!this.cc.showPtz) {
+        if (!this.cc || !this.cc.showPtz) {
             return null;
         }
 
         const overlay = document.createElement("div");
         overlay.classList.add("ptz-overlay");
-        if (this.cc.ptzMode === "hover") {
+        const isVisible = (this.cc.ptzMode === "always") || this.ls.showPtz;
+        if (isVisible) {
+            overlay.classList.add("ptz-visible");
+        } else if (this.cc.ptzMode === "hover") {
             overlay.classList.add("ptz-hover-mode");
-        }
-        if (this.ls.showPtzTouch) {
-            overlay.classList.add("ptz-active");
         }
 
         const D_PAD = [
@@ -52,7 +52,7 @@ export const PtzViewMixin = {
     },
 
     buildPresetBar() {
-        if (!this.cc.showPtz || !this.cc.showPresets) {
+        if (!this.cc || !this.cc.showPtz || !this.cc.showPresets) {
             return null;
         }
 
@@ -63,11 +63,11 @@ export const PtzViewMixin = {
 
         const bar = document.createElement("div");
         bar.classList.add("preset-bar");
-        if (this.cc.ptzMode === "hover") {
+        const isVisible = (this.cc.ptzMode === "always") || this.ls.showPtz;
+        if (isVisible) {
+            bar.classList.add("ptz-visible");
+        } else if (this.cc.ptzMode === "hover") {
             bar.classList.add("ptz-hover-mode");
-        }
-        if (this.ls.showPtzTouch) {
-            bar.classList.add("ptz-active");
         }
 
         presets.forEach((name) => {
@@ -90,12 +90,61 @@ export const PtzViewMixin = {
         if (Array.isArray(this.cc.presets) && this.cc.presets.length > 0) {
             return this.cc.presets;
         }
-        // Auto-discover from camera entity attributes if available
+        if (!this._hass || !this.cc || !this.cc.id) {
+            return [];
+        }
         const stateObj = this._hass.states[this.cc.id];
         if (stateObj && stateObj.attributes && Array.isArray(stateObj.attributes.preset_list)) {
             return stateObj.attributes.preset_list;
         }
         return [];
+    },
+
+    updatePtzControls() {
+        if (!this.cc || !this.cc.showPtz) {
+            return;
+        }
+        const container = this._element("camera-container") || this._element("aarlo-wrapper");
+        if (!container) {
+            return;
+        }
+
+        // 1. D-Pad overlay
+        let overlay = container.querySelector(".ptz-overlay");
+        if (!overlay) {
+            overlay = this.buildPtzOverlay();
+            if (overlay) container.appendChild(overlay);
+        } else {
+            const isVisible = (this.cc.ptzMode === "always") || this.ls.showPtz;
+            overlay.classList.toggle("ptz-visible", isVisible);
+            overlay.classList.toggle("ptz-hover-mode", this.cc.ptzMode === "hover" && !this.ls.showPtz);
+        }
+
+        // 2. Preset bar
+        let bar = container.querySelector(".preset-bar");
+        const presets = this.getPresets();
+        if (presets && presets.length > 0) {
+            if (!bar) {
+                bar = this.buildPresetBar();
+                if (bar) container.appendChild(bar);
+            } else {
+                const currentChips = Array.from(bar.querySelectorAll(".preset-chip")).map((c) => c.textContent);
+                if (JSON.stringify(currentChips) !== JSON.stringify(presets)) {
+                    bar.remove();
+                    const newBar = this.buildPresetBar();
+                    if (newBar) container.appendChild(newBar);
+                } else {
+                    const isVisible = (this.cc.ptzMode === "always") || this.ls.showPtz;
+                    bar.classList.toggle("ptz-visible", isVisible);
+                    bar.classList.toggle("ptz-hover-mode", this.cc.ptzMode === "hover" && !this.ls.showPtz);
+                }
+            }
+        }
+    },
+
+    togglePtzControls() {
+        this.ls.showPtz = !this.ls.showPtz;
+        this.updatePtzControls();
     },
 
     async performPtz(movement) {

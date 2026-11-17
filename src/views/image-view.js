@@ -49,6 +49,8 @@ export const ImageViewMixin = {
             this.showOrStopStream()
         } else if (id.startsWith("camera-snapshot")) {
             this.updateSnapshot()
+        } else if (id.startsWith("camera-ptz")) {
+            this.togglePtzControls()
     
         } else if (id.startsWith("camera-door2")) {
             this.moreInfo(this.cc.door2Id)
@@ -114,18 +116,7 @@ export const ImageViewMixin = {
             this.buildImageRow(this._element('bottom-bar'), this.cc.image_bottom)
         }
 
-        const container = this._element('camera-container') || this._element('aarlo-wrapper')
-        if (container) {
-            const existingPtz = container.querySelector('.ptz-overlay')
-            if (existingPtz) existingPtz.remove()
-            const existingPresets = container.querySelector('.preset-bar')
-            if (existingPresets) existingPresets.remove()
-
-            const ptz = this.buildPtzOverlay()
-            if (ptz) container.appendChild(ptz)
-            const presets = this.buildPresetBar()
-            if (presets) container.appendChild(presets)
-        }
+        this.updatePtzControls()
     
         if( this.gc.isMobile ) {
             this._hide("camera-previous")
@@ -171,6 +162,7 @@ export const ImageViewMixin = {
 
     updateImageView() {
         this._set("camera-name", {text: this.cc.name})
+        this.updatePtzControls()
     
         for (const item in this.cs.details) {
             // noinspection JSUnfilteredForInLoop
