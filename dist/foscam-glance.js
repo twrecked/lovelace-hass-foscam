@@ -3330,13 +3330,12 @@ class FoscamGlance extends HTMLElement {
         cc.rawConfig = config;
 
         // camera and sensors (auto-resolved dynamically against hass.states)
-        cc.id              = _value(config.camera_id,  `camera.aarlo_${camera}`);
-        cc.motionId        = _value(config.motion_id,  `binary_sensor.aarlo_${camera}_motion`);
-        cc.soundId         = _value(config.sound_id,   `binary_sensor.aarlo_${camera}_sound`);
-        cc.batteryId       = _value(config.battery_id, `sensor.aarlo_${camera}_battery_level`);
-        cc.signalId        = _value(config.signal_id,  `sensor.aarlo_${camera}_signal_strength`);
-        cc.capturedTodayId = _value(config.capture_id, `sensor.aarlo_${camera}_captured_today`);
-        cc.lastCaptureId   = _value(config.last_id,    `sensor.aarlo_${camera}_last`);
+        cc.id              = _value(config.camera_id,  `camera.${camera}`);
+        cc.motionId        = _value(config.motion_id,  `binary_sensor.${camera}_motion`);
+        cc.soundId         = _value(config.sound_id,   `binary_sensor.${camera}_sound`);
+        cc.ioId            = _value(config.io_id,      `binary_sensor.${camera}_io_alarm`);
+        cc.capturedTodayId = _value(config.capture_id, `sensor.${camera}_captured_today`);
+        cc.lastCaptureId   = _value(config.last_id,    `sensor.${camera}_last_capture`);
 
         // door definition
         cc.doorId         = _value(config.door);
@@ -3377,8 +3376,6 @@ class FoscamGlance extends HTMLElement {
         }
 
         const candidates = [
-            `${domain}.aarlo_${camera}_${suffix}`,
-            `${domain}.aarlo_${suffix}_${camera}`,
             `${domain}.${camera}_${suffix}`,
             `${domain}.${suffix}_${camera}`,
         ];
@@ -3728,23 +3725,6 @@ class FoscamGlance extends HTMLElement {
 
     async wsStartStream() {
         try {
-            /**
-             * Direct Arlo Cloud Playback
-             * Only when explicitly requested via `arlo-stream` in image_view.
-             */
-            if (this.cc.arloPlay) {
-                let ua = this.gc.isAndroid ? "linux" : navigator.userAgent;
-                return await this._hass.callWS({
-                    type: "aarlo_stream_url",
-                    entity_id: this.cc.id,
-                    user_agent: ua,
-                });
-            }
-
-            /**
-             * Home Assistant Playback (Default)
-             * Standard HLS stream proxied through Home Assistant.
-             */
             return await this._hass.callWS({
                 type: "camera/stream",
                 entity_id: this.cc.id,
@@ -3755,26 +3735,13 @@ class FoscamGlance extends HTMLElement {
     }
 
     async wsStopStream() {
-        try {
-            return await this._hass.callWS({
-                type: "aarlo_stop_activity",
-                entity_id: this.cc.id,
-            })
-        } catch (err) {
-            throw new Error(`wsStopStream failed: ${err}`)
-        }
-        
+        // Local RTSP/HLS streams tear down automatically when the video element pauses/detaches
+        return true;
     }
 
     async wsUpdateSnapshot() {
-        try {
-            return await this._hass.callWS({
-                type: "aarlo_request_snapshot",
-                entity_id: this.cc.id
-            })
-        } catch (err) {
-            throw new Error(`wsUpdateSnapshot failed: ${err}`)
-        }
+        this.generateImageURL();
+        this.updateImageView();
     }
 
     updateSnapshot() {
