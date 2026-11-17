@@ -1,7 +1,10 @@
-0.1.0:
-  - Initial release of foscam-glance card for Foscam IP cameras
-  - Live RTSP stream and snapshot viewing
-  - On-screen PTZ D-pad overlay on hover / touch toggle
+Unreleased
+
+0.1.0-alpha.1
+  - Initial alpha release of foscam-glance custom card for Foscam IP cameras
+  - Live RTSP streaming and snapshot viewing
+  - On-screen PTZ D-pad overlay on hover (desktop) or tap toggle (mobile)
   - Preset position quick-action buttons
-  - Range-request saved clip browser modal
-  - Modular rollup build architecture
+  - Saved clips library modal with HTTP 206 range request scrubbing and seeking
+  - Motion detection toggle badge and sensor glance controls
+  - Modern modular Rollup build pipeline
