@@ -31,5 +31,4 @@ ${ECHO} cp -afv "${REPO_ROOT}/dist/foscam-glance.js" "${DEST}/www/foscam-glance.
 if [[ -f "${REPO_ROOT}/dist/foscam-glance.js.map" ]]; then
 	${ECHO} cp -afv "${REPO_ROOT}/dist/foscam-glance.js.map" "${DEST}/www/foscam-glance.js.map"
 fi
-${ECHO} cp -afv "${REPO_ROOT}/dist/foscam-glance.js" "${DEST}/www/aarlo-glance.js"
 echo -- finished at "$(date '+%A at %H:%M:%S')"
