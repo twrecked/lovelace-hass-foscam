@@ -2316,23 +2316,28 @@ class FoscamGlance extends HTMLElement {
     }
 
     static async getConfigElement() {
-        return document.createElement("aarlo-glance-editor");
+        return document.createElement("foscam-glance-editor");
     }
 
     static getStubConfig(hass, entities, entitiesFallback) {
-        let cameraEntity = "camera.aarlo_camera";
+        let cameraEntity = "camera.foscam_camera";
         if (entities && entities.length > 0) {
-            const found = entities.find(e => e.startsWith("camera.aarlo_") || e.startsWith("camera."));
+            const found = entities.find(e => e.startsWith("camera.") && !e.startsWith("camera.aarlo_"));
             if (found) cameraEntity = found;
         } else if (hass && hass.states) {
-            const found = Object.keys(hass.states).find(e => e.startsWith("camera.aarlo_"));
+            const found = Object.keys(hass.states).find(e => e.startsWith("camera.") && !e.startsWith("camera.aarlo_"));
             if (found) cameraEntity = found;
         }
         return {
-            type: "custom:aarlo-glance",
+            type: "custom:foscam-glance",
             entity: cameraEntity,
             image_top: "name,status",
-            image_bottom: "motion,library,play,snapshot,battery",
+            image_bottom: "motion,library,ptz,snapshot",
+            ptz: {
+                show: true,
+                mode: "always",
+                travel_time: 0.125,
+            },
         };
     }
 
@@ -3824,6 +3829,29 @@ class FoscamGlanceEditor extends HTMLElement {
         delete newConfig.top_right;
         delete newConfig.bottom_left;
         delete newConfig.bottom_right;
+
+        // Build clean ptz config block
+        const ptzShow = value.show_ptz !== undefined ? value.show_ptz : true;
+        const ptzMode = value.ptz_mode || "always";
+        const ptzTravel = parseFloat(value.ptz_travel_time) || 0.125;
+        const ptzPresets = value.ptz_presets
+            ? String(value.ptz_presets).split(",").map((s) => s.trim()).filter(Boolean)
+            : [];
+
+        newConfig.ptz = {
+            show: ptzShow,
+            mode: ptzMode,
+            travel_time: ptzTravel,
+        };
+        if (ptzPresets.length > 0) {
+            newConfig.ptz.presets = ptzPresets;
+        }
+
+        // Clean up editor-specific helper keys from yaml
+        delete newConfig.show_ptz;
+        delete newConfig.ptz_mode;
+        delete newConfig.ptz_travel_time;
+        delete newConfig.ptz_presets;
 
         this._config = newConfig;
         const event = new CustomEvent("config-changed", {

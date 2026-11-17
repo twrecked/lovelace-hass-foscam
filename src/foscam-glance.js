@@ -217,23 +217,28 @@ export class FoscamGlance extends HTMLElement {
     }
 
     static async getConfigElement() {
-        return document.createElement("aarlo-glance-editor");
+        return document.createElement("foscam-glance-editor");
     }
 
     static getStubConfig(hass, entities, entitiesFallback) {
-        let cameraEntity = "camera.aarlo_camera";
+        let cameraEntity = "camera.foscam_camera";
         if (entities && entities.length > 0) {
-            const found = entities.find(e => e.startsWith("camera.aarlo_") || e.startsWith("camera."));
+            const found = entities.find(e => e.startsWith("camera.") && !e.startsWith("camera.aarlo_"));
             if (found) cameraEntity = found;
         } else if (hass && hass.states) {
-            const found = Object.keys(hass.states).find(e => e.startsWith("camera.aarlo_"));
+            const found = Object.keys(hass.states).find(e => e.startsWith("camera.") && !e.startsWith("camera.aarlo_"));
             if (found) cameraEntity = found;
         }
         return {
-            type: "custom:aarlo-glance",
+            type: "custom:foscam-glance",
             entity: cameraEntity,
             image_top: "name,status",
-            image_bottom: "motion,library,play,snapshot,battery",
+            image_bottom: "motion,library,ptz,snapshot",
+            ptz: {
+                show: true,
+                mode: "always",
+                travel_time: 0.125,
+            },
         };
     }
 

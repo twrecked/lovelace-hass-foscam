@@ -194,6 +194,29 @@ export class FoscamGlanceEditor extends HTMLElement {
         delete newConfig.bottom_left;
         delete newConfig.bottom_right;
 
+        // Build clean ptz config block
+        const ptzShow = value.show_ptz !== undefined ? value.show_ptz : true;
+        const ptzMode = value.ptz_mode || "always";
+        const ptzTravel = parseFloat(value.ptz_travel_time) || 0.125;
+        const ptzPresets = value.ptz_presets
+            ? String(value.ptz_presets).split(",").map((s) => s.trim()).filter(Boolean)
+            : [];
+
+        newConfig.ptz = {
+            show: ptzShow,
+            mode: ptzMode,
+            travel_time: ptzTravel,
+        };
+        if (ptzPresets.length > 0) {
+            newConfig.ptz.presets = ptzPresets;
+        }
+
+        // Clean up editor-specific helper keys from yaml
+        delete newConfig.show_ptz;
+        delete newConfig.ptz_mode;
+        delete newConfig.ptz_travel_time;
+        delete newConfig.ptz_presets;
+
         this._config = newConfig;
         const event = new CustomEvent("config-changed", {
             bubbles: true,
