@@ -179,16 +179,13 @@ const CARD_STYLES = `
             opacity: 0.9;
         }
 
-        /* PTZ D-Pad Overlay */
+        /* PTZ D-Pad Overlay (Compact by default) */
         .ptz-overlay {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
             display: grid;
-            grid-template-columns: repeat(3, 44px);
-            grid-template-rows: repeat(3, 44px);
-            gap: 8px;
+            grid-template-columns: repeat(3, 30px);
+            grid-template-rows: repeat(3, 30px);
+            gap: 4px;
             z-index: 25;
             transition: opacity 0.25s ease-in-out;
             pointer-events: auto;
@@ -206,6 +203,8 @@ const CARD_STYLES = `
             pointer-events: auto !important;
         }
         .ptz-btn {
+            width: 30px;
+            height: 30px;
             background-color: rgba(0, 0, 0, 0.65);
             color: #fff;
             border-radius: 50%;
@@ -215,8 +214,16 @@ const CARD_STYLES = `
             cursor: pointer;
             user-select: none;
             transition: background-color 0.15s, transform 0.1s;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+        }
+        .ptz-btn ha-icon {
+            --mdc-icon-size: 16px;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .ptz-btn:hover {
             background-color: rgba(3, 169, 244, 0.9);
@@ -233,20 +240,113 @@ const CARD_STYLES = `
             background-color: rgba(244, 67, 54, 0.95);
         }
 
-        /* Presets Bar */
+        /* PTZ Positions */
+        .ptz-pos-center {
+            top: 50% !important;
+            left: 50% !important;
+            right: auto !important;
+            bottom: auto !important;
+            transform: translate(-50%, -50%) !important;
+        }
+        .ptz-pos-bottom-right {
+            bottom: 44px !important;
+            right: 8px !important;
+            top: auto !important;
+            left: auto !important;
+            transform: none !important;
+        }
+        .ptz-pos-bottom-left {
+            bottom: 44px !important;
+            left: 8px !important;
+            top: auto !important;
+            right: auto !important;
+            transform: none !important;
+        }
+        .ptz-pos-top-right {
+            top: 44px !important;
+            right: 8px !important;
+            bottom: auto !important;
+            left: auto !important;
+            transform: none !important;
+        }
+        .ptz-pos-top-left {
+            top: 44px !important;
+            left: 8px !important;
+            bottom: auto !important;
+            right: auto !important;
+            transform: none !important;
+        }
+
+        /* Fullscreen PTZ scaling */
+        ha-card.aarlo-pseudo-fullscreen .ptz-overlay,
+        ha-card:fullscreen .ptz-overlay,
+        ha-card:-webkit-full-screen .ptz-overlay {
+            grid-template-columns: repeat(3, 44px);
+            grid-template-rows: repeat(3, 44px);
+            gap: 6px;
+        }
+        ha-card.aarlo-pseudo-fullscreen .ptz-btn,
+        ha-card:fullscreen .ptz-btn,
+        ha-card:-webkit-full-screen .ptz-btn {
+            width: 44px;
+            height: 44px;
+        }
+        ha-card.aarlo-pseudo-fullscreen .ptz-btn ha-icon,
+        ha-card:fullscreen .ptz-btn ha-icon,
+        ha-card:-webkit-full-screen .ptz-btn ha-icon {
+            --mdc-icon-size: 22px;
+            width: 22px;
+            height: 22px;
+        }
+
+        /* Presets Bar & Positions */
         .preset-bar {
             position: absolute;
-            bottom: 45px;
-            left: 0;
-            right: 0;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 6px;
-            padding: 6px 10px;
             z-index: 24;
             transition: opacity 0.25s ease-in-out;
             pointer-events: auto;
+            gap: 5px;
+        }
+        .preset-orient-horizontal {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+        }
+        .preset-orient-vertical {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            max-height: calc(100% - 88px);
+            overflow-y: auto;
+        }
+        .preset-pos-bottom {
+            bottom: 44px;
+            left: 8px;
+            right: 8px;
+            justify-content: center;
+        }
+        .preset-pos-top {
+            top: 44px;
+            left: 8px;
+            right: 8px;
+            justify-content: center;
+        }
+        .preset-pos-left {
+            top: 44px;
+            left: 8px;
+        }
+        .preset-pos-right {
+            top: 44px;
+            right: 8px;
+            align-items: flex-end;
+        }
+        .preset-pos-bottom-left {
+            bottom: 44px;
+            left: 8px;
+        }
+        .preset-pos-bottom-right {
+            bottom: 44px;
+            right: 8px;
         }
         .preset-bar.ptz-hover-mode {
             opacity: 0;
@@ -260,17 +360,18 @@ const CARD_STYLES = `
             pointer-events: auto !important;
         }
         .preset-chip {
-            background-color: rgba(0, 0, 0, 0.75);
+            background-color: rgba(0, 0, 0, 0.7);
             color: #fff;
-            border-radius: 14px;
-            padding: 3px 12px;
-            font-size: 12px;
+            border-radius: 12px;
+            padding: 2px 8px;
+            font-size: 11px;
             font-weight: 500;
             cursor: pointer;
             user-select: none;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
             border: 1px solid rgba(255, 255, 255, 0.2);
             transition: background-color 0.15s, transform 0.1s;
+            white-space: nowrap;
         }
         .preset-chip:hover {
             background-color: #03a9f4;
@@ -1949,6 +2050,9 @@ const PtzViewMixin = {
 
         const overlay = document.createElement("div");
         overlay.classList.add("ptz-overlay");
+        const pos = this.cc.ptzPosition || "bottom-right";
+        overlay.classList.add(`ptz-pos-${pos}`);
+
         const isVisible = (this.cc.ptzMode === "always") || this.ls.showPtz;
         if (isVisible) {
             overlay.classList.add("ptz-visible");
@@ -2006,6 +2110,10 @@ const PtzViewMixin = {
 
         const bar = document.createElement("div");
         bar.classList.add("preset-bar");
+        const pos = this.cc.presetsPosition || "left";
+        const orient = this.cc.presetsOrientation || "vertical";
+        bar.classList.add(`preset-pos-${pos}`, `preset-orient-${orient}`);
+
         const isVisible = (this.cc.ptzMode === "always") || this.ls.showPtz;
         if (isVisible) {
             bar.classList.add("ptz-visible");
@@ -2013,15 +2121,16 @@ const PtzViewMixin = {
             bar.classList.add("ptz-hover-mode");
         }
 
-        presets.forEach((name) => {
+        presets.forEach((p) => {
             const chip = document.createElement("div");
             chip.classList.add("preset-chip");
-            chip.textContent = name;
-            chip.setAttribute("title", `Go to preset ${name}`);
+            chip.textContent = p.label;
+            const title = p.name !== p.label ? `${p.label} (${p.name})` : p.name;
+            chip.setAttribute("title", `Go to preset ${title}`);
 
             chip.addEventListener("click", (e) => {
                 e.stopPropagation();
-                this.performPreset(name);
+                this.performPreset(p.name);
             });
             bar.appendChild(chip);
         });
@@ -2030,17 +2139,79 @@ const PtzViewMixin = {
     },
 
     getPresets() {
-        if (Array.isArray(this.cc.presets) && this.cc.presets.length > 0) {
-            return this.cc.presets;
-        }
         if (!this._hass || !this.cc || !this.cc.id) {
             return [];
         }
+
+        // 1. Fetch raw list from camera entity attributes
         const stateObj = this._hass.states[this.cc.id];
+        let cameraPresets = [];
         if (stateObj && stateObj.attributes && Array.isArray(stateObj.attributes.preset_list)) {
-            return stateObj.attributes.preset_list;
+            cameraPresets = stateObj.attributes.preset_list.map((p) => String(p).trim()).filter(Boolean);
         }
-        return [];
+
+        // 2. Parse overrides from config
+        let rawOverrides = this.cc.presets || [];
+        if (typeof rawOverrides === "string") {
+            rawOverrides = rawOverrides.split(",").map((s) => s.trim()).filter(Boolean);
+        }
+
+        // If explicitly set to hide all:
+        if (rawOverrides.length === 1 && (rawOverrides[0] === "-" || rawOverrides[0] === "-*")) {
+            return [];
+        }
+
+        const hides = new Set();
+        const renames = new Map(); // cameraName -> customLabel
+        const explicitOrder = [];
+
+        rawOverrides.forEach((item) => {
+            const str = String(item).trim();
+            if (!str) return;
+
+            if (str.startsWith("-")) {
+                const hideName = str.substring(1).trim();
+                if (hideName) {
+                    hides.add(hideName.toLowerCase());
+                }
+            } else if (str.includes("=")) {
+                const parts = str.split("=");
+                const orig = parts[0].trim();
+                const custom = parts.slice(1).join("=").trim();
+                if (orig && custom) {
+                    renames.set(orig.toLowerCase(), custom);
+                    explicitOrder.push(orig);
+                }
+            } else {
+                explicitOrder.push(str);
+            }
+        });
+
+        // 3. Determine candidate list:
+        let candidateList = [];
+        const hasExplicitItems = explicitOrder.length > 0;
+        const hasHides = hides.size > 0;
+
+        if (hasExplicitItems && !hasHides) {
+            candidateList = explicitOrder;
+        } else if (cameraPresets.length > 0) {
+            candidateList = cameraPresets;
+        } else if (hasExplicitItems) {
+            candidateList = explicitOrder;
+        }
+
+        // 4. Build final results: { name, label }
+        const result = [];
+        for (const name of candidateList) {
+            const lower = name.toLowerCase();
+            if (hides.has(lower)) {
+                continue;
+            }
+            const label = renames.get(lower) || name;
+            result.push({ name, label });
+        }
+
+        return result;
     },
 
     hidePtzControls() {
@@ -2088,6 +2259,12 @@ const PtzViewMixin = {
             const isVisible = (this.cc.ptzMode === "always") || this.ls.showPtz;
             overlay.classList.toggle("ptz-visible", isVisible);
             overlay.classList.toggle("ptz-hover-mode", this.cc.ptzMode === "hover" && !this.ls.showPtz);
+
+            // Update position class if changed
+            const pos = this.cc.ptzPosition || "bottom-right";
+            ["center", "bottom-right", "bottom-left", "top-right", "top-left"].forEach((p) => {
+                overlay.classList.toggle(`ptz-pos-${p}`, p === pos);
+            });
         }
 
         // 2. Preset bar
@@ -2098,8 +2275,9 @@ const PtzViewMixin = {
                 bar = this.buildPresetBar();
                 if (bar) container.appendChild(bar);
             } else {
-                const currentChips = Array.from(bar.querySelectorAll(".preset-chip")).map((c) => c.textContent);
-                if (JSON.stringify(currentChips) !== JSON.stringify(presets)) {
+                const currentLabels = Array.from(bar.querySelectorAll(".preset-chip")).map((c) => c.textContent);
+                const newLabels = presets.map((p) => p.label);
+                if (JSON.stringify(currentLabels) !== JSON.stringify(newLabels)) {
                     bar.remove();
                     const newBar = this.buildPresetBar();
                     if (newBar) container.appendChild(newBar);
@@ -2107,8 +2285,19 @@ const PtzViewMixin = {
                     const isVisible = (this.cc.ptzMode === "always") || this.ls.showPtz;
                     bar.classList.toggle("ptz-visible", isVisible);
                     bar.classList.toggle("ptz-hover-mode", this.cc.ptzMode === "hover" && !this.ls.showPtz);
+
+                    const pos = this.cc.presetsPosition || "left";
+                    ["bottom", "top", "left", "right", "bottom-left", "bottom-right"].forEach((p) => {
+                        bar.classList.toggle(`preset-pos-${p}`, p === pos);
+                    });
+
+                    const orient = this.cc.presetsOrientation || "vertical";
+                    bar.classList.toggle("preset-orient-vertical", orient === "vertical");
+                    bar.classList.toggle("preset-orient-horizontal", orient === "horizontal");
                 }
             }
+        } else if (bar) {
+            bar.remove();
         }
     },
 
@@ -3107,6 +3296,9 @@ class FoscamGlance extends HTMLElement {
         cc.ptzMode = _value(config.ptz_mode || ptzCfg.mode, "always");
         cc.ptzTravelTime = _value_float(config.ptz_travel_time || ptzCfg.travel_time, 0.125);
         cc.showPresets = (config.show_presets !== undefined) ? config.show_presets : (ptzCfg.show_presets !== false);
+        cc.ptzPosition = ptzCfg.position || config.ptz_position || "bottom-right";
+        cc.presetsPosition = ptzCfg.presets_position || config.presets_position || "left";
+        cc.presetsOrientation = ptzCfg.presets_orientation || config.presets_orientation || "vertical"; 
 
         let presetsList = [];
         if (config.ptz_presets) {
@@ -3690,6 +3882,26 @@ const PTZ_MODE_OPTIONS = [
     { value: "off", label: "Disabled (Hide PTZ Controls)" },
 ];
 
+const PTZ_POS_OPTIONS = [
+    { value: "bottom-right", label: "Bottom-Right Corner" },
+    { value: "bottom-left", label: "Bottom-Left Corner" },
+    { value: "top-right", label: "Top-Right Corner" },
+    { value: "top-left", label: "Top-Left Corner" },
+    { value: "center", label: "Center" },
+];
+
+const PRESETS_POS_OPTIONS = [
+    { value: "left", label: "Left Edge" },
+    { value: "right", label: "Right Edge" },
+    { value: "bottom", label: "Bottom Bar" },
+    { value: "top", label: "Top Bar" },
+];
+
+const PRESETS_ORIENT_OPTIONS = [
+    { value: "vertical", label: "Vertical Column" },
+    { value: "horizontal", label: "Horizontal Row" },
+];
+
 const EDITOR_SCHEMA = [
     { name: "entity", selector: { entity: { domain: "camera" } } },
     { name: "name", selector: { text: {} } },
@@ -3717,6 +3929,14 @@ const EDITOR_SCHEMA = [
         },
     },
     {
+        name: "ptz_position",
+        selector: {
+            select: {
+                options: PTZ_POS_OPTIONS,
+            },
+        },
+    },
+    {
         name: "ptz_travel_time",
         selector: {
             number: {
@@ -3725,6 +3945,22 @@ const EDITOR_SCHEMA = [
                 step: 0.025,
                 mode: "box",
                 unit_of_measurement: "sec",
+            },
+        },
+    },
+    {
+        name: "presets_position",
+        selector: {
+            select: {
+                options: PRESETS_POS_OPTIONS,
+            },
+        },
+    },
+    {
+        name: "presets_orientation",
+        selector: {
+            select: {
+                options: PRESETS_ORIENT_OPTIONS,
             },
         },
     },
@@ -3803,10 +4039,13 @@ class FoscamGlanceEditor extends HTMLElement {
             entity: "Camera Entity",
             name: "Display Name (Optional)",
             image_click: "Click Preview Action",
-            show_ptz: "Enable PTZ D-Pad & Controls",
+            show_ptz: "Enable PTZ Controls & Presets",
             ptz_mode: "PTZ Display Mode",
+            ptz_position: "PTZ D-Pad Position",
             ptz_travel_time: "PTZ Step Travel Time",
-            ptz_presets: "Presets Override (Comma-separated, blank for auto-detect)",
+            presets_position: "Presets Position",
+            presets_orientation: "Presets Orientation",
+            ptz_presets: "Presets Filter/Override (e.g. -TopMost, scene01=Pool, scene02=Fire Pit)",
             top_left: "Top Bar Widgets (Left)",
             top_right: "Top Bar Widgets (Right)",
             bottom_left: "Bottom Bar Widgets (Left)",
@@ -3865,7 +4104,10 @@ class FoscamGlanceEditor extends HTMLElement {
         // Build clean ptz config block
         const ptzShow = value.show_ptz !== undefined ? value.show_ptz : true;
         const ptzMode = value.ptz_mode || "always";
+        const ptzPos = value.ptz_position || "bottom-right";
         const ptzTravel = parseFloat(value.ptz_travel_time) || 0.125;
+        const presetsPos = value.presets_position || "left";
+        const presetsOrient = value.presets_orientation || "vertical";
         const ptzPresets = value.ptz_presets
             ? String(value.ptz_presets).split(",").map((s) => s.trim()).filter(Boolean)
             : [];
@@ -3873,7 +4115,10 @@ class FoscamGlanceEditor extends HTMLElement {
         newConfig.ptz = {
             show: ptzShow,
             mode: ptzMode,
+            position: ptzPos,
             travel_time: ptzTravel,
+            presets_position: presetsPos,
+            presets_orientation: presetsOrient,
         };
         if (ptzPresets.length > 0) {
             newConfig.ptz.presets = ptzPresets;
@@ -3882,7 +4127,10 @@ class FoscamGlanceEditor extends HTMLElement {
         // Clean up editor-specific helper keys from yaml
         delete newConfig.show_ptz;
         delete newConfig.ptz_mode;
+        delete newConfig.ptz_position;
         delete newConfig.ptz_travel_time;
+        delete newConfig.presets_position;
+        delete newConfig.presets_orientation;
         delete newConfig.ptz_presets;
 
         this._config = newConfig;
@@ -3923,14 +4171,22 @@ class FoscamGlanceEditor extends HTMLElement {
             ? this._config.show_ptz
             : (ptzCfg.show !== undefined ? ptzCfg.show : true);
         const ptzMode = this._config.ptz_mode || ptzCfg.mode || "always";
-        const ptzTravel = this._config.ptz_travel_time || ptzCfg.travel_time || 0.125;
+        const ptzPos = this._config.ptz_position || ptzCfg.position || "bottom-right";
+        const ptzTravel = this._config.ptz_travel_time !== undefined
+            ? this._config.ptz_travel_time
+            : (ptzCfg.travel_time !== undefined ? ptzCfg.travel_time : 0.125);
+        const presetsPos = this._config.presets_position || ptzCfg.presets_position || "left";
+        const presetsOrient = this._config.presets_orientation || ptzCfg.presets_orientation || "vertical";
         const ptzPresets = this._config.ptz_presets || (Array.isArray(ptzCfg.presets) ? ptzCfg.presets.join(", ") : "");
 
         const formData = {
             ...this._config,
             show_ptz: showPtz,
             ptz_mode: ptzMode,
+            ptz_position: ptzPos,
             ptz_travel_time: ptzTravel,
+            presets_position: presetsPos,
+            presets_orientation: presetsOrient,
             ptz_presets: ptzPresets,
             top_left: topLeft,
             top_right: topRight,

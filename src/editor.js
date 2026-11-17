@@ -22,6 +22,26 @@ export const PTZ_MODE_OPTIONS = [
     { value: "off", label: "Disabled (Hide PTZ Controls)" },
 ];
 
+export const PTZ_POS_OPTIONS = [
+    { value: "bottom-right", label: "Bottom-Right Corner" },
+    { value: "bottom-left", label: "Bottom-Left Corner" },
+    { value: "top-right", label: "Top-Right Corner" },
+    { value: "top-left", label: "Top-Left Corner" },
+    { value: "center", label: "Center" },
+];
+
+export const PRESETS_POS_OPTIONS = [
+    { value: "left", label: "Left Edge" },
+    { value: "right", label: "Right Edge" },
+    { value: "bottom", label: "Bottom Bar" },
+    { value: "top", label: "Top Bar" },
+];
+
+export const PRESETS_ORIENT_OPTIONS = [
+    { value: "vertical", label: "Vertical Column" },
+    { value: "horizontal", label: "Horizontal Row" },
+];
+
 export const EDITOR_SCHEMA = [
     { name: "entity", selector: { entity: { domain: "camera" } } },
     { name: "name", selector: { text: {} } },
@@ -49,6 +69,14 @@ export const EDITOR_SCHEMA = [
         },
     },
     {
+        name: "ptz_position",
+        selector: {
+            select: {
+                options: PTZ_POS_OPTIONS,
+            },
+        },
+    },
+    {
         name: "ptz_travel_time",
         selector: {
             number: {
@@ -57,6 +85,22 @@ export const EDITOR_SCHEMA = [
                 step: 0.025,
                 mode: "box",
                 unit_of_measurement: "sec",
+            },
+        },
+    },
+    {
+        name: "presets_position",
+        selector: {
+            select: {
+                options: PRESETS_POS_OPTIONS,
+            },
+        },
+    },
+    {
+        name: "presets_orientation",
+        selector: {
+            select: {
+                options: PRESETS_ORIENT_OPTIONS,
             },
         },
     },
@@ -135,10 +179,13 @@ export class FoscamGlanceEditor extends HTMLElement {
             entity: "Camera Entity",
             name: "Display Name (Optional)",
             image_click: "Click Preview Action",
-            show_ptz: "Enable PTZ D-Pad & Controls",
+            show_ptz: "Enable PTZ Controls & Presets",
             ptz_mode: "PTZ Display Mode",
+            ptz_position: "PTZ D-Pad Position",
             ptz_travel_time: "PTZ Step Travel Time",
-            ptz_presets: "Presets Override (Comma-separated, blank for auto-detect)",
+            presets_position: "Presets Position",
+            presets_orientation: "Presets Orientation",
+            ptz_presets: "Presets Filter/Override (e.g. -TopMost, scene01=Pool, scene02=Fire Pit)",
             top_left: "Top Bar Widgets (Left)",
             top_right: "Top Bar Widgets (Right)",
             bottom_left: "Bottom Bar Widgets (Left)",
@@ -197,7 +244,10 @@ export class FoscamGlanceEditor extends HTMLElement {
         // Build clean ptz config block
         const ptzShow = value.show_ptz !== undefined ? value.show_ptz : true;
         const ptzMode = value.ptz_mode || "always";
+        const ptzPos = value.ptz_position || "bottom-right";
         const ptzTravel = parseFloat(value.ptz_travel_time) || 0.125;
+        const presetsPos = value.presets_position || "left";
+        const presetsOrient = value.presets_orientation || "vertical";
         const ptzPresets = value.ptz_presets
             ? String(value.ptz_presets).split(",").map((s) => s.trim()).filter(Boolean)
             : [];
@@ -205,7 +255,10 @@ export class FoscamGlanceEditor extends HTMLElement {
         newConfig.ptz = {
             show: ptzShow,
             mode: ptzMode,
+            position: ptzPos,
             travel_time: ptzTravel,
+            presets_position: presetsPos,
+            presets_orientation: presetsOrient,
         };
         if (ptzPresets.length > 0) {
             newConfig.ptz.presets = ptzPresets;
@@ -214,7 +267,10 @@ export class FoscamGlanceEditor extends HTMLElement {
         // Clean up editor-specific helper keys from yaml
         delete newConfig.show_ptz;
         delete newConfig.ptz_mode;
+        delete newConfig.ptz_position;
         delete newConfig.ptz_travel_time;
+        delete newConfig.presets_position;
+        delete newConfig.presets_orientation;
         delete newConfig.ptz_presets;
 
         this._config = newConfig;
@@ -255,14 +311,22 @@ export class FoscamGlanceEditor extends HTMLElement {
             ? this._config.show_ptz
             : (ptzCfg.show !== undefined ? ptzCfg.show : true);
         const ptzMode = this._config.ptz_mode || ptzCfg.mode || "always";
-        const ptzTravel = this._config.ptz_travel_time || ptzCfg.travel_time || 0.125;
+        const ptzPos = this._config.ptz_position || ptzCfg.position || "bottom-right";
+        const ptzTravel = this._config.ptz_travel_time !== undefined
+            ? this._config.ptz_travel_time
+            : (ptzCfg.travel_time !== undefined ? ptzCfg.travel_time : 0.125);
+        const presetsPos = this._config.presets_position || ptzCfg.presets_position || "left";
+        const presetsOrient = this._config.presets_orientation || ptzCfg.presets_orientation || "vertical";
         const ptzPresets = this._config.ptz_presets || (Array.isArray(ptzCfg.presets) ? ptzCfg.presets.join(", ") : "");
 
         const formData = {
             ...this._config,
             show_ptz: showPtz,
             ptz_mode: ptzMode,
+            ptz_position: ptzPos,
             ptz_travel_time: ptzTravel,
+            presets_position: presetsPos,
+            presets_orientation: presetsOrient,
             ptz_presets: ptzPresets,
             top_left: topLeft,
             top_right: topRight,

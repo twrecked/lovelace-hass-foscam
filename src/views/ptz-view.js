@@ -6,6 +6,9 @@ export const PtzViewMixin = {
 
         const overlay = document.createElement("div");
         overlay.classList.add("ptz-overlay");
+        const pos = this.cc.ptzPosition || "bottom-right";
+        overlay.classList.add(`ptz-pos-${pos}`);
+
         const isVisible = (this.cc.ptzMode === "always") || this.ls.showPtz;
         if (isVisible) {
             overlay.classList.add("ptz-visible");
@@ -63,6 +66,10 @@ export const PtzViewMixin = {
 
         const bar = document.createElement("div");
         bar.classList.add("preset-bar");
+        const pos = this.cc.presetsPosition || "left";
+        const orient = this.cc.presetsOrientation || "vertical";
+        bar.classList.add(`preset-pos-${pos}`, `preset-orient-${orient}`);
+
         const isVisible = (this.cc.ptzMode === "always") || this.ls.showPtz;
         if (isVisible) {
             bar.classList.add("ptz-visible");
@@ -70,15 +77,16 @@ export const PtzViewMixin = {
             bar.classList.add("ptz-hover-mode");
         }
 
-        presets.forEach((name) => {
+        presets.forEach((p) => {
             const chip = document.createElement("div");
             chip.classList.add("preset-chip");
-            chip.textContent = name;
-            chip.setAttribute("title", `Go to preset ${name}`);
+            chip.textContent = p.label;
+            const title = p.name !== p.label ? `${p.label} (${p.name})` : p.name;
+            chip.setAttribute("title", `Go to preset ${title}`);
 
             chip.addEventListener("click", (e) => {
                 e.stopPropagation();
-                this.performPreset(name);
+                this.performPreset(p.name);
             });
             bar.appendChild(chip);
         });
@@ -87,17 +95,79 @@ export const PtzViewMixin = {
     },
 
     getPresets() {
-        if (Array.isArray(this.cc.presets) && this.cc.presets.length > 0) {
-            return this.cc.presets;
-        }
         if (!this._hass || !this.cc || !this.cc.id) {
             return [];
         }
+
+        // 1. Fetch raw list from camera entity attributes
         const stateObj = this._hass.states[this.cc.id];
+        let cameraPresets = [];
         if (stateObj && stateObj.attributes && Array.isArray(stateObj.attributes.preset_list)) {
-            return stateObj.attributes.preset_list;
+            cameraPresets = stateObj.attributes.preset_list.map((p) => String(p).trim()).filter(Boolean);
         }
-        return [];
+
+        // 2. Parse overrides from config
+        let rawOverrides = this.cc.presets || [];
+        if (typeof rawOverrides === "string") {
+            rawOverrides = rawOverrides.split(",").map((s) => s.trim()).filter(Boolean);
+        }
+
+        // If explicitly set to hide all:
+        if (rawOverrides.length === 1 && (rawOverrides[0] === "-" || rawOverrides[0] === "-*")) {
+            return [];
+        }
+
+        const hides = new Set();
+        const renames = new Map(); // cameraName -> customLabel
+        const explicitOrder = [];
+
+        rawOverrides.forEach((item) => {
+            const str = String(item).trim();
+            if (!str) return;
+
+            if (str.startsWith("-")) {
+                const hideName = str.substring(1).trim();
+                if (hideName) {
+                    hides.add(hideName.toLowerCase());
+                }
+            } else if (str.includes("=")) {
+                const parts = str.split("=");
+                const orig = parts[0].trim();
+                const custom = parts.slice(1).join("=").trim();
+                if (orig && custom) {
+                    renames.set(orig.toLowerCase(), custom);
+                    explicitOrder.push(orig);
+                }
+            } else {
+                explicitOrder.push(str);
+            }
+        });
+
+        // 3. Determine candidate list:
+        let candidateList = [];
+        const hasExplicitItems = explicitOrder.length > 0;
+        const hasHides = hides.size > 0;
+
+        if (hasExplicitItems && !hasHides) {
+            candidateList = explicitOrder;
+        } else if (cameraPresets.length > 0) {
+            candidateList = cameraPresets;
+        } else if (hasExplicitItems) {
+            candidateList = explicitOrder;
+        }
+
+        // 4. Build final results: { name, label }
+        const result = [];
+        for (const name of candidateList) {
+            const lower = name.toLowerCase();
+            if (hides.has(lower)) {
+                continue;
+            }
+            const label = renames.get(lower) || name;
+            result.push({ name, label });
+        }
+
+        return result;
     },
 
     hidePtzControls() {
@@ -145,6 +215,12 @@ export const PtzViewMixin = {
             const isVisible = (this.cc.ptzMode === "always") || this.ls.showPtz;
             overlay.classList.toggle("ptz-visible", isVisible);
             overlay.classList.toggle("ptz-hover-mode", this.cc.ptzMode === "hover" && !this.ls.showPtz);
+
+            // Update position class if changed
+            const pos = this.cc.ptzPosition || "bottom-right";
+            ["center", "bottom-right", "bottom-left", "top-right", "top-left"].forEach((p) => {
+                overlay.classList.toggle(`ptz-pos-${p}`, p === pos);
+            });
         }
 
         // 2. Preset bar
@@ -155,8 +231,9 @@ export const PtzViewMixin = {
                 bar = this.buildPresetBar();
                 if (bar) container.appendChild(bar);
             } else {
-                const currentChips = Array.from(bar.querySelectorAll(".preset-chip")).map((c) => c.textContent);
-                if (JSON.stringify(currentChips) !== JSON.stringify(presets)) {
+                const currentLabels = Array.from(bar.querySelectorAll(".preset-chip")).map((c) => c.textContent);
+                const newLabels = presets.map((p) => p.label);
+                if (JSON.stringify(currentLabels) !== JSON.stringify(newLabels)) {
                     bar.remove();
                     const newBar = this.buildPresetBar();
                     if (newBar) container.appendChild(newBar);
@@ -164,8 +241,19 @@ export const PtzViewMixin = {
                     const isVisible = (this.cc.ptzMode === "always") || this.ls.showPtz;
                     bar.classList.toggle("ptz-visible", isVisible);
                     bar.classList.toggle("ptz-hover-mode", this.cc.ptzMode === "hover" && !this.ls.showPtz);
+
+                    const pos = this.cc.presetsPosition || "left";
+                    ["bottom", "top", "left", "right", "bottom-left", "bottom-right"].forEach((p) => {
+                        bar.classList.toggle(`preset-pos-${p}`, p === pos);
+                    });
+
+                    const orient = this.cc.presetsOrientation || "vertical";
+                    bar.classList.toggle("preset-orient-vertical", orient === "vertical");
+                    bar.classList.toggle("preset-orient-horizontal", orient === "horizontal");
                 }
             }
+        } else if (bar) {
+            bar.remove();
         }
     },
 

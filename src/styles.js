@@ -107,16 +107,13 @@ export const CARD_STYLES = `
             opacity: 0.9;
         }
 
-        /* PTZ D-Pad Overlay */
+        /* PTZ D-Pad Overlay (Compact by default) */
         .ptz-overlay {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
             display: grid;
-            grid-template-columns: repeat(3, 44px);
-            grid-template-rows: repeat(3, 44px);
-            gap: 8px;
+            grid-template-columns: repeat(3, 30px);
+            grid-template-rows: repeat(3, 30px);
+            gap: 4px;
             z-index: 25;
             transition: opacity 0.25s ease-in-out;
             pointer-events: auto;
@@ -134,6 +131,8 @@ export const CARD_STYLES = `
             pointer-events: auto !important;
         }
         .ptz-btn {
+            width: 30px;
+            height: 30px;
             background-color: rgba(0, 0, 0, 0.65);
             color: #fff;
             border-radius: 50%;
@@ -143,8 +142,16 @@ export const CARD_STYLES = `
             cursor: pointer;
             user-select: none;
             transition: background-color 0.15s, transform 0.1s;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+        }
+        .ptz-btn ha-icon {
+            --mdc-icon-size: 16px;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .ptz-btn:hover {
             background-color: rgba(3, 169, 244, 0.9);
@@ -161,20 +168,113 @@ export const CARD_STYLES = `
             background-color: rgba(244, 67, 54, 0.95);
         }
 
-        /* Presets Bar */
+        /* PTZ Positions */
+        .ptz-pos-center {
+            top: 50% !important;
+            left: 50% !important;
+            right: auto !important;
+            bottom: auto !important;
+            transform: translate(-50%, -50%) !important;
+        }
+        .ptz-pos-bottom-right {
+            bottom: 44px !important;
+            right: 8px !important;
+            top: auto !important;
+            left: auto !important;
+            transform: none !important;
+        }
+        .ptz-pos-bottom-left {
+            bottom: 44px !important;
+            left: 8px !important;
+            top: auto !important;
+            right: auto !important;
+            transform: none !important;
+        }
+        .ptz-pos-top-right {
+            top: 44px !important;
+            right: 8px !important;
+            bottom: auto !important;
+            left: auto !important;
+            transform: none !important;
+        }
+        .ptz-pos-top-left {
+            top: 44px !important;
+            left: 8px !important;
+            bottom: auto !important;
+            right: auto !important;
+            transform: none !important;
+        }
+
+        /* Fullscreen PTZ scaling */
+        ha-card.aarlo-pseudo-fullscreen .ptz-overlay,
+        ha-card:fullscreen .ptz-overlay,
+        ha-card:-webkit-full-screen .ptz-overlay {
+            grid-template-columns: repeat(3, 44px);
+            grid-template-rows: repeat(3, 44px);
+            gap: 6px;
+        }
+        ha-card.aarlo-pseudo-fullscreen .ptz-btn,
+        ha-card:fullscreen .ptz-btn,
+        ha-card:-webkit-full-screen .ptz-btn {
+            width: 44px;
+            height: 44px;
+        }
+        ha-card.aarlo-pseudo-fullscreen .ptz-btn ha-icon,
+        ha-card:fullscreen .ptz-btn ha-icon,
+        ha-card:-webkit-full-screen .ptz-btn ha-icon {
+            --mdc-icon-size: 22px;
+            width: 22px;
+            height: 22px;
+        }
+
+        /* Presets Bar & Positions */
         .preset-bar {
             position: absolute;
-            bottom: 45px;
-            left: 0;
-            right: 0;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 6px;
-            padding: 6px 10px;
             z-index: 24;
             transition: opacity 0.25s ease-in-out;
             pointer-events: auto;
+            gap: 5px;
+        }
+        .preset-orient-horizontal {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+        }
+        .preset-orient-vertical {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            max-height: calc(100% - 88px);
+            overflow-y: auto;
+        }
+        .preset-pos-bottom {
+            bottom: 44px;
+            left: 8px;
+            right: 8px;
+            justify-content: center;
+        }
+        .preset-pos-top {
+            top: 44px;
+            left: 8px;
+            right: 8px;
+            justify-content: center;
+        }
+        .preset-pos-left {
+            top: 44px;
+            left: 8px;
+        }
+        .preset-pos-right {
+            top: 44px;
+            right: 8px;
+            align-items: flex-end;
+        }
+        .preset-pos-bottom-left {
+            bottom: 44px;
+            left: 8px;
+        }
+        .preset-pos-bottom-right {
+            bottom: 44px;
+            right: 8px;
         }
         .preset-bar.ptz-hover-mode {
             opacity: 0;
@@ -188,17 +288,18 @@ export const CARD_STYLES = `
             pointer-events: auto !important;
         }
         .preset-chip {
-            background-color: rgba(0, 0, 0, 0.75);
+            background-color: rgba(0, 0, 0, 0.7);
             color: #fff;
-            border-radius: 14px;
-            padding: 3px 12px;
-            font-size: 12px;
+            border-radius: 12px;
+            padding: 2px 8px;
+            font-size: 11px;
             font-weight: 500;
             cursor: pointer;
             user-select: none;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
             border: 1px solid rgba(255, 255, 255, 0.2);
             transition: background-color 0.15s, transform 0.1s;
+            white-space: nowrap;
         }
         .preset-chip:hover {
             background-color: #03a9f4;

@@ -976,6 +976,9 @@ export class FoscamGlance extends HTMLElement {
         cc.ptzMode = _value(config.ptz_mode || ptzCfg.mode, "always")
         cc.ptzTravelTime = _value_float(config.ptz_travel_time || ptzCfg.travel_time, 0.125)
         cc.showPresets = (config.show_presets !== undefined) ? config.show_presets : (ptzCfg.show_presets !== false)
+        cc.ptzPosition = ptzCfg.position || config.ptz_position || "bottom-right"
+        cc.presetsPosition = ptzCfg.presets_position || config.presets_position || "left"
+        cc.presetsOrientation = ptzCfg.presets_orientation || config.presets_orientation || "vertical" 
 
         let presetsList = []
         if (config.ptz_presets) {
