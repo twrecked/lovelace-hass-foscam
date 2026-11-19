@@ -1174,7 +1174,7 @@ export class FoscamGlance extends HTMLElement {
             recordings: null,
             size:       -1,
             sizeIndex:  0,
-            showPtz:    true,
+            showPtz:    false,
         }
     }
 
