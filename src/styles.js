@@ -110,13 +110,28 @@ export const CARD_STYLES = `
         /* PTZ D-Pad Overlay (Compact by default) */
         .ptz-overlay {
             position: absolute;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            z-index: 25;
+            transition: opacity 0.25s ease-in-out;
+            pointer-events: auto;
+        }
+        .ptz-dpad {
             display: grid;
             grid-template-columns: repeat(3, 30px);
             grid-template-rows: repeat(3, 30px);
             gap: 4px;
-            z-index: 25;
-            transition: opacity 0.25s ease-in-out;
-            pointer-events: auto;
+        }
+        .ptz-lens-group {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        .ptz-lens-column {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
         }
         .ptz-hover-mode {
             opacity: 0;
@@ -175,6 +190,7 @@ export const CARD_STYLES = `
             right: auto !important;
             bottom: auto !important;
             transform: translate(-50%, -50%) !important;
+            flex-direction: row;
         }
         .ptz-pos-bottom-right {
             bottom: 44px !important;
@@ -182,6 +198,7 @@ export const CARD_STYLES = `
             top: auto !important;
             left: auto !important;
             transform: none !important;
+            flex-direction: row-reverse;
         }
         .ptz-pos-bottom-left {
             bottom: 44px !important;
@@ -189,6 +206,7 @@ export const CARD_STYLES = `
             top: auto !important;
             right: auto !important;
             transform: none !important;
+            flex-direction: row;
         }
         .ptz-pos-top-right {
             top: 44px !important;
@@ -196,6 +214,7 @@ export const CARD_STYLES = `
             bottom: auto !important;
             left: auto !important;
             transform: none !important;
+            flex-direction: row-reverse;
         }
         .ptz-pos-top-left {
             top: 44px !important;
@@ -203,14 +222,28 @@ export const CARD_STYLES = `
             bottom: auto !important;
             right: auto !important;
             transform: none !important;
+            flex-direction: row;
         }
 
         /* Fullscreen PTZ scaling */
         ha-card.aarlo-pseudo-fullscreen .ptz-overlay,
         ha-card:fullscreen .ptz-overlay,
         ha-card:-webkit-full-screen .ptz-overlay {
+            gap: 8px;
+        }
+        ha-card.aarlo-pseudo-fullscreen .ptz-dpad,
+        ha-card:fullscreen .ptz-dpad,
+        ha-card:-webkit-full-screen .ptz-dpad {
             grid-template-columns: repeat(3, 44px);
             grid-template-rows: repeat(3, 44px);
+            gap: 6px;
+        }
+        ha-card.aarlo-pseudo-fullscreen .ptz-lens-group,
+        ha-card:fullscreen .ptz-lens-group,
+        ha-card:-webkit-full-screen .ptz-lens-group,
+        ha-card.aarlo-pseudo-fullscreen .ptz-lens-column,
+        ha-card:fullscreen .ptz-lens-column,
+        ha-card:-webkit-full-screen .ptz-lens-column {
             gap: 6px;
         }
         ha-card.aarlo-pseudo-fullscreen .ptz-btn,

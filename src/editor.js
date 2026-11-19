@@ -61,6 +61,14 @@ export const EDITOR_SCHEMA = [
         selector: { boolean: {} },
     },
     {
+        name: "show_zoom",
+        selector: { boolean: {} },
+    },
+    {
+        name: "show_focus",
+        selector: { boolean: {} },
+    },
+    {
         name: "ptz_mode",
         selector: {
             select: {
@@ -180,6 +188,8 @@ export class FoscamGlanceEditor extends HTMLElement {
             name: "Display Name (Optional)",
             image_click: "Click Preview Action",
             show_ptz: "Enable PTZ Controls & Presets",
+            show_zoom: "Show Optical Zoom Controls (In/Out)",
+            show_focus: "Show Manual Focus Controls (Near/Far)",
             ptz_mode: "PTZ Display Mode",
             ptz_position: "PTZ D-Pad Position",
             ptz_travel_time: "PTZ Step Travel Time",
@@ -243,6 +253,8 @@ export class FoscamGlanceEditor extends HTMLElement {
 
         // Build clean ptz config block
         const ptzShow = value.show_ptz !== undefined ? value.show_ptz : true;
+        const showZoom = value.show_zoom === true;
+        const showFocus = value.show_focus === true;
         const ptzMode = value.ptz_mode || "always";
         const ptzPos = value.ptz_position || "bottom-right";
         const ptzTravel = parseFloat(value.ptz_travel_time) || 0.125;
@@ -254,6 +266,8 @@ export class FoscamGlanceEditor extends HTMLElement {
 
         newConfig.ptz = {
             show: ptzShow,
+            show_zoom: showZoom,
+            show_focus: showFocus,
             mode: ptzMode,
             position: ptzPos,
             travel_time: ptzTravel,
@@ -266,6 +280,8 @@ export class FoscamGlanceEditor extends HTMLElement {
 
         // Clean up editor-specific helper keys from yaml
         delete newConfig.show_ptz;
+        delete newConfig.show_zoom;
+        delete newConfig.show_focus;
         delete newConfig.ptz_mode;
         delete newConfig.ptz_position;
         delete newConfig.ptz_travel_time;
@@ -310,6 +326,12 @@ export class FoscamGlanceEditor extends HTMLElement {
         const showPtz = this._config.show_ptz !== undefined
             ? this._config.show_ptz
             : (ptzCfg.show !== undefined ? ptzCfg.show : true);
+        const showZoom = this._config.show_zoom !== undefined
+            ? this._config.show_zoom
+            : (ptzCfg.show_zoom === true || ptzCfg.zoom === true);
+        const showFocus = this._config.show_focus !== undefined
+            ? this._config.show_focus
+            : (ptzCfg.show_focus === true || ptzCfg.focus === true);
         const ptzMode = this._config.ptz_mode || ptzCfg.mode || "always";
         const ptzPos = this._config.ptz_position || ptzCfg.position || "bottom-right";
         const ptzTravel = this._config.ptz_travel_time !== undefined
@@ -322,6 +344,8 @@ export class FoscamGlanceEditor extends HTMLElement {
         const formData = {
             ...this._config,
             show_ptz: showPtz,
+            show_zoom: showZoom,
+            show_focus: showFocus,
             ptz_mode: ptzMode,
             ptz_position: ptzPos,
             ptz_travel_time: ptzTravel,

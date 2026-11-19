@@ -1,4 +1,4 @@
-const CARD_VERSION = "0.1.0-alpha.1";
+const CARD_VERSION = "0.1.0-alpha.2";
 
 const DEFAULT_MESSAGES = {
     author: {
@@ -182,13 +182,28 @@ const CARD_STYLES = `
         /* PTZ D-Pad Overlay (Compact by default) */
         .ptz-overlay {
             position: absolute;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            z-index: 25;
+            transition: opacity 0.25s ease-in-out;
+            pointer-events: auto;
+        }
+        .ptz-dpad {
             display: grid;
             grid-template-columns: repeat(3, 30px);
             grid-template-rows: repeat(3, 30px);
             gap: 4px;
-            z-index: 25;
-            transition: opacity 0.25s ease-in-out;
-            pointer-events: auto;
+        }
+        .ptz-lens-group {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        .ptz-lens-column {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
         }
         .ptz-hover-mode {
             opacity: 0;
@@ -247,6 +262,7 @@ const CARD_STYLES = `
             right: auto !important;
             bottom: auto !important;
             transform: translate(-50%, -50%) !important;
+            flex-direction: row;
         }
         .ptz-pos-bottom-right {
             bottom: 44px !important;
@@ -254,6 +270,7 @@ const CARD_STYLES = `
             top: auto !important;
             left: auto !important;
             transform: none !important;
+            flex-direction: row-reverse;
         }
         .ptz-pos-bottom-left {
             bottom: 44px !important;
@@ -261,6 +278,7 @@ const CARD_STYLES = `
             top: auto !important;
             right: auto !important;
             transform: none !important;
+            flex-direction: row;
         }
         .ptz-pos-top-right {
             top: 44px !important;
@@ -268,6 +286,7 @@ const CARD_STYLES = `
             bottom: auto !important;
             left: auto !important;
             transform: none !important;
+            flex-direction: row-reverse;
         }
         .ptz-pos-top-left {
             top: 44px !important;
@@ -275,14 +294,28 @@ const CARD_STYLES = `
             bottom: auto !important;
             right: auto !important;
             transform: none !important;
+            flex-direction: row;
         }
 
         /* Fullscreen PTZ scaling */
         ha-card.aarlo-pseudo-fullscreen .ptz-overlay,
         ha-card:fullscreen .ptz-overlay,
         ha-card:-webkit-full-screen .ptz-overlay {
+            gap: 8px;
+        }
+        ha-card.aarlo-pseudo-fullscreen .ptz-dpad,
+        ha-card:fullscreen .ptz-dpad,
+        ha-card:-webkit-full-screen .ptz-dpad {
             grid-template-columns: repeat(3, 44px);
             grid-template-rows: repeat(3, 44px);
+            gap: 6px;
+        }
+        ha-card.aarlo-pseudo-fullscreen .ptz-lens-group,
+        ha-card:fullscreen .ptz-lens-group,
+        ha-card:-webkit-full-screen .ptz-lens-group,
+        ha-card.aarlo-pseudo-fullscreen .ptz-lens-column,
+        ha-card:fullscreen .ptz-lens-column,
+        ha-card:-webkit-full-screen .ptz-lens-column {
             gap: 6px;
         }
         ha-card.aarlo-pseudo-fullscreen .ptz-btn,
@@ -2050,6 +2083,8 @@ const PtzViewMixin = {
 
         const overlay = document.createElement("div");
         overlay.classList.add("ptz-overlay");
+        overlay.dataset.zoom = String(Boolean(this.cc.showZoom));
+        overlay.dataset.focus = String(Boolean(this.cc.showFocus));
         const pos = this.cc.ptzPosition || "bottom-right";
         overlay.classList.add(`ptz-pos-${pos}`);
 
@@ -2059,6 +2094,9 @@ const PtzViewMixin = {
         } else if (this.cc.ptzMode === "hover") {
             overlay.classList.add("ptz-hover-mode");
         }
+
+        const dpad = document.createElement("div");
+        dpad.classList.add("ptz-dpad");
 
         const D_PAD = [
             { id: "top_left", icon: "mdi:arrow-top-left" },
@@ -2088,12 +2126,84 @@ const PtzViewMixin = {
                 e.stopPropagation();
                 if (btn.isStop) {
                     this.performPtz("stop");
+                    if (this.cc.showZoom) this.performZoom("stop");
+                    if (this.cc.showFocus) this.performFocus("stop");
                 } else {
                     this.performPtz(btn.id);
                 }
             });
-            overlay.appendChild(el);
+            dpad.appendChild(el);
         });
+        overlay.appendChild(dpad);
+
+        if (this.cc.showZoom || this.cc.showFocus) {
+            const lensGroup = document.createElement("div");
+            lensGroup.classList.add("ptz-lens-group");
+
+            if (this.cc.showZoom) {
+                const zoomCol = document.createElement("div");
+                zoomCol.classList.add("ptz-lens-column");
+
+                const zoomIn = document.createElement("div");
+                zoomIn.classList.add("ptz-btn");
+                zoomIn.setAttribute("title", "Zoom In");
+                const zinIcon = document.createElement("ha-icon");
+                zinIcon.setAttribute("icon", "mdi:magnify-plus-outline");
+                zoomIn.appendChild(zinIcon);
+                zoomIn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    this.performZoom("in");
+                });
+                zoomCol.appendChild(zoomIn);
+
+                const zoomOut = document.createElement("div");
+                zoomOut.classList.add("ptz-btn");
+                zoomOut.setAttribute("title", "Zoom Out");
+                const zoutIcon = document.createElement("ha-icon");
+                zoutIcon.setAttribute("icon", "mdi:magnify-minus-outline");
+                zoomOut.appendChild(zoutIcon);
+                zoomOut.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    this.performZoom("out");
+                });
+                zoomCol.appendChild(zoomOut);
+
+                lensGroup.appendChild(zoomCol);
+            }
+
+            if (this.cc.showFocus) {
+                const focusCol = document.createElement("div");
+                focusCol.classList.add("ptz-lens-column");
+
+                const focusNear = document.createElement("div");
+                focusNear.classList.add("ptz-btn");
+                focusNear.setAttribute("title", "Focus Near");
+                const fnIcon = document.createElement("ha-icon");
+                fnIcon.setAttribute("icon", "mdi:image-filter-center-focus");
+                focusNear.appendChild(fnIcon);
+                focusNear.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    this.performFocus("near");
+                });
+                focusCol.appendChild(focusNear);
+
+                const focusFar = document.createElement("div");
+                focusFar.classList.add("ptz-btn");
+                focusFar.setAttribute("title", "Focus Far");
+                const ffIcon = document.createElement("ha-icon");
+                ffIcon.setAttribute("icon", "mdi:image-filter-center-focus-weak");
+                focusFar.appendChild(ffIcon);
+                focusFar.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    this.performFocus("far");
+                });
+                focusCol.appendChild(focusFar);
+
+                lensGroup.appendChild(focusCol);
+            }
+
+            overlay.appendChild(lensGroup);
+        }
 
         return overlay;
     },
@@ -2252,6 +2362,16 @@ const PtzViewMixin = {
 
         // 1. D-Pad overlay
         let overlay = container.querySelector(".ptz-overlay");
+        const currentZoom = overlay ? overlay.dataset.zoom : null;
+        const currentFocus = overlay ? overlay.dataset.focus : null;
+        const targetZoom = String(Boolean(this.cc.showZoom));
+        const targetFocus = String(Boolean(this.cc.showFocus));
+
+        if (overlay && (currentZoom !== targetZoom || currentFocus !== targetFocus)) {
+            overlay.remove();
+            overlay = null;
+        }
+
         if (!overlay) {
             overlay = this.buildPtzOverlay();
             if (overlay) container.appendChild(overlay);
@@ -2319,6 +2439,38 @@ const PtzViewMixin = {
             });
         } catch (err) {
             console.warn(`[foscam-glance] PTZ ${movement} failed:`, err);
+        }
+    },
+
+    async performZoom(direction) {
+        if (!this._hass || !this.cc.id) {
+            return;
+        }
+        try {
+            this._log(`Performing zoom: ${direction} on ${this.cc.id} (travel_time=${this.cc.ptzTravelTime})`);
+            await this._hass.callService("foscam", "zoom", {
+                entity_id: this.cc.id,
+                direction: direction,
+                travel_time: this.cc.ptzTravelTime,
+            });
+        } catch (err) {
+            console.warn(`[foscam-glance] Zoom ${direction} failed:`, err);
+        }
+    },
+
+    async performFocus(direction) {
+        if (!this._hass || !this.cc.id) {
+            return;
+        }
+        try {
+            this._log(`Performing focus: ${direction} on ${this.cc.id} (travel_time=${this.cc.ptzTravelTime})`);
+            await this._hass.callService("foscam", "focus", {
+                entity_id: this.cc.id,
+                direction: direction,
+                travel_time: this.cc.ptzTravelTime,
+            });
+        } catch (err) {
+            console.warn(`[foscam-glance] Focus ${direction} failed:`, err);
         }
     },
 
@@ -3296,6 +3448,8 @@ class FoscamGlance extends HTMLElement {
         cc.ptzMode = _value(config.ptz_mode || ptzCfg.mode, "always");
         cc.ptzTravelTime = _value_float(config.ptz_travel_time || ptzCfg.travel_time, 0.125);
         cc.showPresets = (config.show_presets !== undefined) ? config.show_presets : (ptzCfg.show_presets !== false);
+        cc.showZoom = (config.show_zoom !== undefined) ? config.show_zoom : (ptzCfg.show_zoom === true || ptzCfg.zoom === true || config.zoom === true);
+        cc.showFocus = (config.show_focus !== undefined) ? config.show_focus : (ptzCfg.show_focus === true || ptzCfg.focus === true || config.focus === true);
         cc.ptzPosition = ptzCfg.position || config.ptz_position || "bottom-right";
         cc.presetsPosition = ptzCfg.presets_position || config.presets_position || "left";
         cc.presetsOrientation = ptzCfg.presets_orientation || config.presets_orientation || "vertical"; 
@@ -3888,6 +4042,14 @@ const EDITOR_SCHEMA = [
         selector: { boolean: {} },
     },
     {
+        name: "show_zoom",
+        selector: { boolean: {} },
+    },
+    {
+        name: "show_focus",
+        selector: { boolean: {} },
+    },
+    {
         name: "ptz_mode",
         selector: {
             select: {
@@ -4007,6 +4169,8 @@ class FoscamGlanceEditor extends HTMLElement {
             name: "Display Name (Optional)",
             image_click: "Click Preview Action",
             show_ptz: "Enable PTZ Controls & Presets",
+            show_zoom: "Show Optical Zoom Controls (In/Out)",
+            show_focus: "Show Manual Focus Controls (Near/Far)",
             ptz_mode: "PTZ Display Mode",
             ptz_position: "PTZ D-Pad Position",
             ptz_travel_time: "PTZ Step Travel Time",
@@ -4070,6 +4234,8 @@ class FoscamGlanceEditor extends HTMLElement {
 
         // Build clean ptz config block
         const ptzShow = value.show_ptz !== undefined ? value.show_ptz : true;
+        const showZoom = value.show_zoom === true;
+        const showFocus = value.show_focus === true;
         const ptzMode = value.ptz_mode || "always";
         const ptzPos = value.ptz_position || "bottom-right";
         const ptzTravel = parseFloat(value.ptz_travel_time) || 0.125;
@@ -4081,6 +4247,8 @@ class FoscamGlanceEditor extends HTMLElement {
 
         newConfig.ptz = {
             show: ptzShow,
+            show_zoom: showZoom,
+            show_focus: showFocus,
             mode: ptzMode,
             position: ptzPos,
             travel_time: ptzTravel,
@@ -4093,6 +4261,8 @@ class FoscamGlanceEditor extends HTMLElement {
 
         // Clean up editor-specific helper keys from yaml
         delete newConfig.show_ptz;
+        delete newConfig.show_zoom;
+        delete newConfig.show_focus;
         delete newConfig.ptz_mode;
         delete newConfig.ptz_position;
         delete newConfig.ptz_travel_time;
@@ -4137,6 +4307,12 @@ class FoscamGlanceEditor extends HTMLElement {
         const showPtz = this._config.show_ptz !== undefined
             ? this._config.show_ptz
             : (ptzCfg.show !== undefined ? ptzCfg.show : true);
+        const showZoom = this._config.show_zoom !== undefined
+            ? this._config.show_zoom
+            : (ptzCfg.show_zoom === true || ptzCfg.zoom === true);
+        const showFocus = this._config.show_focus !== undefined
+            ? this._config.show_focus
+            : (ptzCfg.show_focus === true || ptzCfg.focus === true);
         const ptzMode = this._config.ptz_mode || ptzCfg.mode || "always";
         const ptzPos = this._config.ptz_position || ptzCfg.position || "bottom-right";
         const ptzTravel = this._config.ptz_travel_time !== undefined
@@ -4149,6 +4325,8 @@ class FoscamGlanceEditor extends HTMLElement {
         const formData = {
             ...this._config,
             show_ptz: showPtz,
+            show_zoom: showZoom,
+            show_focus: showFocus,
             ptz_mode: ptzMode,
             ptz_position: ptzPos,
             ptz_travel_time: ptzTravel,
