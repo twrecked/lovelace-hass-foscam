@@ -1,5 +1,15 @@
 Unreleased
 
+0.1.0-alpha.2
+  - Added optical zoom and manual focus controls beside the PTZ D-pad overlay:
+    - Optical Zoom: In (mdi:magnify-plus-outline) and Out (mdi:magnify-minus-outline)
+    - Manual Focus: Near (mdi:image-filter-center-focus) and Far (mdi:image-filter-center-focus-weak)
+    - Center Stop (mdi:stop) halts PTZ, zoom, and focus movements concurrently
+    - Responsive alignment: controls extend inward from corners (using row-reverse for right-anchored positions) to avoid card overflow
+    - Fullscreen scaling: lens controls scale up to 44px proportionally with D-pad buttons in fullscreen mode
+  - Added visual card editor switches: "Show Optical Zoom Controls (In/Out)" and "Show Manual Focus Controls (Near/Far)", off by default to keep standard cameras uncluttered
+  - Requires hass-foscam v0.1.0-alpha.5 or later for zoom and focus actions
+
 0.1.0-alpha.1
   - Initial alpha release of foscam-glance custom card for Foscam IP cameras
   - Live RTSP streaming and snapshot viewing
