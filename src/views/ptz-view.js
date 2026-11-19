@@ -6,6 +6,8 @@ export const PtzViewMixin = {
 
         const overlay = document.createElement("div");
         overlay.classList.add("ptz-overlay");
+        overlay.dataset.zoom = String(Boolean(this.cc.showZoom));
+        overlay.dataset.focus = String(Boolean(this.cc.showFocus));
         const pos = this.cc.ptzPosition || "bottom-right";
         overlay.classList.add(`ptz-pos-${pos}`);
 
@@ -15,6 +17,9 @@ export const PtzViewMixin = {
         } else if (this.cc.ptzMode === "hover") {
             overlay.classList.add("ptz-hover-mode");
         }
+
+        const dpad = document.createElement("div");
+        dpad.classList.add("ptz-dpad");
 
         const D_PAD = [
             { id: "top_left", icon: "mdi:arrow-top-left" },
@@ -44,12 +49,84 @@ export const PtzViewMixin = {
                 e.stopPropagation();
                 if (btn.isStop) {
                     this.performPtz("stop");
+                    if (this.cc.showZoom) this.performZoom("stop");
+                    if (this.cc.showFocus) this.performFocus("stop");
                 } else {
                     this.performPtz(btn.id);
                 }
             });
-            overlay.appendChild(el);
+            dpad.appendChild(el);
         });
+        overlay.appendChild(dpad);
+
+        if (this.cc.showZoom || this.cc.showFocus) {
+            const lensGroup = document.createElement("div");
+            lensGroup.classList.add("ptz-lens-group");
+
+            if (this.cc.showZoom) {
+                const zoomCol = document.createElement("div");
+                zoomCol.classList.add("ptz-lens-column");
+
+                const zoomIn = document.createElement("div");
+                zoomIn.classList.add("ptz-btn");
+                zoomIn.setAttribute("title", "Zoom In");
+                const zinIcon = document.createElement("ha-icon");
+                zinIcon.setAttribute("icon", "mdi:magnify-plus-outline");
+                zoomIn.appendChild(zinIcon);
+                zoomIn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    this.performZoom("in");
+                });
+                zoomCol.appendChild(zoomIn);
+
+                const zoomOut = document.createElement("div");
+                zoomOut.classList.add("ptz-btn");
+                zoomOut.setAttribute("title", "Zoom Out");
+                const zoutIcon = document.createElement("ha-icon");
+                zoutIcon.setAttribute("icon", "mdi:magnify-minus-outline");
+                zoomOut.appendChild(zoutIcon);
+                zoomOut.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    this.performZoom("out");
+                });
+                zoomCol.appendChild(zoomOut);
+
+                lensGroup.appendChild(zoomCol);
+            }
+
+            if (this.cc.showFocus) {
+                const focusCol = document.createElement("div");
+                focusCol.classList.add("ptz-lens-column");
+
+                const focusNear = document.createElement("div");
+                focusNear.classList.add("ptz-btn");
+                focusNear.setAttribute("title", "Focus Near");
+                const fnIcon = document.createElement("ha-icon");
+                fnIcon.setAttribute("icon", "mdi:image-filter-center-focus");
+                focusNear.appendChild(fnIcon);
+                focusNear.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    this.performFocus("near");
+                });
+                focusCol.appendChild(focusNear);
+
+                const focusFar = document.createElement("div");
+                focusFar.classList.add("ptz-btn");
+                focusFar.setAttribute("title", "Focus Far");
+                const ffIcon = document.createElement("ha-icon");
+                ffIcon.setAttribute("icon", "mdi:image-filter-center-focus-weak");
+                focusFar.appendChild(ffIcon);
+                focusFar.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    this.performFocus("far");
+                });
+                focusCol.appendChild(focusFar);
+
+                lensGroup.appendChild(focusCol);
+            }
+
+            overlay.appendChild(lensGroup);
+        }
 
         return overlay;
     },
@@ -208,6 +285,16 @@ export const PtzViewMixin = {
 
         // 1. D-Pad overlay
         let overlay = container.querySelector(".ptz-overlay");
+        const currentZoom = overlay ? overlay.dataset.zoom : null;
+        const currentFocus = overlay ? overlay.dataset.focus : null;
+        const targetZoom = String(Boolean(this.cc.showZoom));
+        const targetFocus = String(Boolean(this.cc.showFocus));
+
+        if (overlay && (currentZoom !== targetZoom || currentFocus !== targetFocus)) {
+            overlay.remove();
+            overlay = null;
+        }
+
         if (!overlay) {
             overlay = this.buildPtzOverlay();
             if (overlay) container.appendChild(overlay);
@@ -275,6 +362,38 @@ export const PtzViewMixin = {
             });
         } catch (err) {
             console.warn(`[foscam-glance] PTZ ${movement} failed:`, err);
+        }
+    },
+
+    async performZoom(direction) {
+        if (!this._hass || !this.cc.id) {
+            return;
+        }
+        try {
+            this._log(`Performing zoom: ${direction} on ${this.cc.id} (travel_time=${this.cc.ptzTravelTime})`);
+            await this._hass.callService("foscam", "zoom", {
+                entity_id: this.cc.id,
+                direction: direction,
+                travel_time: this.cc.ptzTravelTime,
+            });
+        } catch (err) {
+            console.warn(`[foscam-glance] Zoom ${direction} failed:`, err);
+        }
+    },
+
+    async performFocus(direction) {
+        if (!this._hass || !this.cc.id) {
+            return;
+        }
+        try {
+            this._log(`Performing focus: ${direction} on ${this.cc.id} (travel_time=${this.cc.ptzTravelTime})`);
+            await this._hass.callService("foscam", "focus", {
+                entity_id: this.cc.id,
+                direction: direction,
+                travel_time: this.cc.ptzTravelTime,
+            });
+        } catch (err) {
+            console.warn(`[foscam-glance] Focus ${direction} failed:`, err);
         }
     },
 
