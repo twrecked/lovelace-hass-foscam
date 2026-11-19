@@ -105,22 +105,22 @@ const CARD_STYLES = `
             min-height: 48px;
             overflow: hidden;
         }
-        .aarlo-base, .camera-container {
+        .camera-container, .foscam-base {
             position: relative;
             overflow: hidden;
             width: 100%;
             background: #000;
         }
-        .aarlo-aspect-16x9 {
+        .camera-aspect-16x9, .foscam-aspect-16x9 {
             padding-top: 56.25%;
         }
-        .aarlo-aspect-4x3 {
+        .camera-aspect-4x3, .foscam-aspect-4x3 {
             padding-top: 75%;
         }
-        .aarlo-aspect-1x1 {
+        .camera-aspect-1x1, .foscam-aspect-1x1 {
             padding-top: 100%;
         }
-        .aarlo-image, .camera-image {
+        .camera-image, .foscam-image {
             position: absolute;
             top: 50%;
             left: 50%;
@@ -129,7 +129,7 @@ const CARD_STYLES = `
             cursor: pointer;
             display: block;
         }
-        .aarlo-video, .stream-video {
+        .stream-video, .foscam-video {
             position: absolute;
             top: 50%;
             left: 50%;
@@ -209,7 +209,7 @@ const CARD_STYLES = `
             opacity: 0;
             pointer-events: none;
         }
-        .aarlo-base:hover .ptz-hover-mode,
+        .foscam-base:hover .ptz-hover-mode,
         .camera-container:hover .ptz-hover-mode,
         ha-card:hover .ptz-hover-mode,
         .ptz-visible,
@@ -298,33 +298,33 @@ const CARD_STYLES = `
         }
 
         /* Fullscreen PTZ scaling */
-        ha-card.aarlo-pseudo-fullscreen .ptz-overlay,
+        ha-card.foscam-pseudo-fullscreen .ptz-overlay,
         ha-card:fullscreen .ptz-overlay,
         ha-card:-webkit-full-screen .ptz-overlay {
             gap: 8px;
         }
-        ha-card.aarlo-pseudo-fullscreen .ptz-dpad,
+        ha-card.foscam-pseudo-fullscreen .ptz-dpad,
         ha-card:fullscreen .ptz-dpad,
         ha-card:-webkit-full-screen .ptz-dpad {
             grid-template-columns: repeat(3, 44px);
             grid-template-rows: repeat(3, 44px);
             gap: 6px;
         }
-        ha-card.aarlo-pseudo-fullscreen .ptz-lens-group,
+        ha-card.foscam-pseudo-fullscreen .ptz-lens-group,
         ha-card:fullscreen .ptz-lens-group,
         ha-card:-webkit-full-screen .ptz-lens-group,
-        ha-card.aarlo-pseudo-fullscreen .ptz-lens-column,
+        ha-card.foscam-pseudo-fullscreen .ptz-lens-column,
         ha-card:fullscreen .ptz-lens-column,
         ha-card:-webkit-full-screen .ptz-lens-column {
             gap: 6px;
         }
-        ha-card.aarlo-pseudo-fullscreen .ptz-btn,
+        ha-card.foscam-pseudo-fullscreen .ptz-btn,
         ha-card:fullscreen .ptz-btn,
         ha-card:-webkit-full-screen .ptz-btn {
             width: 44px;
             height: 44px;
         }
-        ha-card.aarlo-pseudo-fullscreen .ptz-btn ha-icon,
+        ha-card.foscam-pseudo-fullscreen .ptz-btn ha-icon,
         ha-card:fullscreen .ptz-btn ha-icon,
         ha-card:-webkit-full-screen .ptz-btn ha-icon {
             --mdc-icon-size: 22px;
@@ -385,7 +385,7 @@ const CARD_STYLES = `
             opacity: 0;
             pointer-events: none;
         }
-        .aarlo-base:hover .preset-bar.ptz-hover-mode,
+        .foscam-base:hover .preset-bar.ptz-hover-mode,
         .camera-container:hover .preset-bar.ptz-hover-mode,
         ha-card:hover .preset-bar.ptz-hover-mode,
         .preset-bar.ptz-visible {
@@ -969,7 +969,7 @@ const LibraryViewMixin = {
             a.style.left = `2%`;
             a.style.top  = `5%`;
             a.setAttribute("download","");
-            a.innerHTML = `<ha-icon class="aarlo-icon-small" icon="mdi:download" style="color: white;"></ha-icon>`;
+            a.innerHTML = `<ha-icon class="foscam-icon-small" icon="mdi:download" style="color: white;"></ha-icon>`;
     
             const column = Math.floor((i % this.gs.librarySize) + 1);
             const row = Math.floor((i / this.gs.librarySize) + 1);
@@ -1308,7 +1308,7 @@ const StreamViewMixin = {
         const interactionTargets = [
             this._element("video-player"),
             this._element("modal-video-player"),
-            this._element("aarlo-wrapper"),
+            this._element("camera-container"),
             this._element("modal-video-wrapper"),
         ];
         interactionTargets.forEach((target) => {
@@ -1476,7 +1476,7 @@ const StreamViewMixin = {
     async isWebRTC(cc) {
         if (!cc) return false;
         if (cc.webrtcPlay) return true;
-        if (cc.arloPlay || cc.haPlay) return false;
+        if (cc.foscamPlay || cc.haPlay) return false;
 
         if (this.cs && this.cs.frontendStreamTypes) {
             return this.cs.frontendStreamTypes.includes("web_rtc");
@@ -1968,11 +1968,11 @@ const StreamViewMixin = {
 
         if (this.gs.viewer === 'modal') {
             if (modalViewer) {
-                modalViewer.classList.toggle('aarlo-pseudo-fullscreen', isFs);
+                modalViewer.classList.toggle('foscam-pseudo-fullscreen', isFs);
             }
         } else {
             if (haCard) {
-                haCard.classList.toggle('aarlo-pseudo-fullscreen', isFs);
+                haCard.classList.toggle('foscam-pseudo-fullscreen', isFs);
             }
         }
 
@@ -1992,11 +1992,11 @@ const StreamViewMixin = {
 
         const haCard = this.querySelector('ha-card');
         if (haCard) {
-            haCard.classList.remove('aarlo-pseudo-fullscreen');
+            haCard.classList.remove('foscam-pseudo-fullscreen');
         }
         const modalViewer = this._element('modal-viewer');
         if (modalViewer) {
-            modalViewer.classList.remove('aarlo-pseudo-fullscreen');
+            modalViewer.classList.remove('foscam-pseudo-fullscreen');
         }
 
         try {
@@ -2325,7 +2325,7 @@ const PtzViewMixin = {
     },
 
     hidePtzControls() {
-        const container = this._element("camera-container") || this._element("aarlo-wrapper");
+        const container = this._element("camera-container");
         if (container) {
             const overlay = container.querySelector(".ptz-overlay");
             if (overlay) overlay.style.display = "none";
@@ -2335,7 +2335,7 @@ const PtzViewMixin = {
     },
 
     showPtzControls() {
-        const container = this._element("camera-container") || this._element("aarlo-wrapper");
+        const container = this._element("camera-container");
         if (container) {
             const overlay = container.querySelector(".ptz-overlay");
             if (overlay) overlay.style.display = "";
@@ -2355,7 +2355,7 @@ const PtzViewMixin = {
         }
         this.showPtzControls();
 
-        const container = this._element("camera-container") || this._element("aarlo-wrapper");
+        const container = this._element("camera-container");
         if (!container) {
             return;
         }
@@ -2523,14 +2523,14 @@ class FoscamGlance extends HTMLElement {
             <div class="w3-modal"
                  id="${this._id('modal-viewer')}"
                  style="display:none">
-                <div class="w3-modal-content w3-animate-opacity aarlo-modal-base"
+                <div class="w3-modal-content w3-animate-opacity foscam-modal-base"
                      id="${this._id('modal-content')}">
-                    <div class="aarlo-modal-video-wrapper"
+                    <div class="foscam-modal-video-wrapper"
                          id="${this._id('modal-video-wrapper')}">
-                        <div class="aarlo-modal-video-background"
+                        <div class="foscam-modal-video-background"
                              id="${this._id('modal-video-background')}">
                         </div>
-                        <video class="aarlo-modal-video"
+                        <video class="foscam-modal-video"
                                id="${this._id('modal-video-player')}"
                                style="display:none" playsinline muted>
                             Your browser does not support the video tag.
@@ -2542,21 +2542,21 @@ class FoscamGlance extends HTMLElement {
                 </div>
             </div>
             <ha-card>
-                <div class="aarlo-base aarlo-aspect-${this.gc.aspectRatio} camera-container"
+                <div class="camera-container camera-aspect-${this.gc.aspectRatio}"
                      id="${this._id('camera-container')}">
-                    <video class="aarlo-video"
+                    <video class="stream-video"
                            id="${this._id('video-player')}"
                            style="display:none" playsinline muted>
                         Your browser does not support the video tag.
                     </video>
-                    <img class="aarlo-image"
+                    <img class="camera-image"
                          id="${this._id('camera-viewer')}"
                          style="display:none">
-                    <div class="aarlo-image"
+                    <div class="camera-image"
                          id="${this._id('library-viewer')}"
                          style="display:none">
                     </div>
-                    <div class="aarlo-image aarlo-broken-image" 
+                    <div class="camera-image broken-image" 
                          id="${this._id('broken-image')}"
                          style="height: 100px">
                     </div>
@@ -2695,10 +2695,10 @@ class FoscamGlance extends HTMLElement {
     static getStubConfig(hass, entities, entitiesFallback) {
         let cameraEntity = "camera.foscam_camera";
         if (entities && entities.length > 0) {
-            const found = entities.find(e => e.startsWith("camera.") && !e.startsWith("camera.aarlo_"));
+            const found = entities.find(e => e.startsWith("camera.") && e.includes("foscam")) || entities.find(e => e.startsWith("camera."));
             if (found) cameraEntity = found;
         } else if (hass && hass.states) {
-            const found = Object.keys(hass.states).find(e => e.startsWith("camera.") && !e.startsWith("camera.aarlo_"));
+            const found = Object.keys(hass.states).find(e => e.startsWith("camera.") && e.includes("foscam")) || Object.keys(hass.states).find(e => e.startsWith("camera."));
             if (found) cameraEntity = found;
         }
         return {
@@ -3421,10 +3421,10 @@ class FoscamGlance extends HTMLElement {
         // Find entity and determine camera name.
         const entity = config.entity;
         if ( !entity || !entity.startsWith( 'camera.' ) ) {
-            this.throwError( "config requires an aarlo camera entity (e.g. camera.aarlo_kitchen)" );
+            this.throwError( "config requires a camera entity (e.g. camera.back_garden)" );
             return {}
         }
-        const camera = entity.startsWith('camera.aarlo_') ? entity.replace( 'camera.aarlo_','' ) : entity.replace('camera.', '');
+        const camera = entity.startsWith('camera.foscam_') ? entity.replace( 'camera.foscam_','' ) : entity.replace('camera.', '');
 
         let cc = {};
 
@@ -3465,7 +3465,7 @@ class FoscamGlance extends HTMLElement {
         cc.presets = presetsList.map(p => String(p).trim()).filter(Boolean);
 
         // How do we display recordings or stream?
-        cc.arloPlay          = _includes(config.image_view, "arlo-stream");
+        cc.foscamPlay        = _includes(config.image_view, "foscam-stream") || _includes(config.image_view, "stream");
         cc.haPlay            = _includes(config.image_view, "ha-stream");
         cc.webrtcPlay        = _includes(config.image_view, "webrtc") || _includes(config.image_view, "sip");
         cc.modalPlayer       = _includes(config.image_view, "modal");
@@ -3518,14 +3518,13 @@ class FoscamGlance extends HTMLElement {
             if (!hass || !hass.states) return explicitId;
             if (explicitId in hass.states) return explicitId;
             // Check if swapped variant exists (legacy <-> modern)
-            const modern = `${domain}.aarlo_${camera}_${suffix}`;
-            const legacy = `${domain}.aarlo_${suffix}_${camera}`;
+            const modern = `${domain}.${camera}_${suffix}`;
+            const legacy = `${domain}.${suffix}_${camera}`;
             if (explicitId === legacy && modern in hass.states) return modern;
             if (explicitId === modern && legacy in hass.states) return legacy;
-            const modernNoPrefix = `${domain}.${camera}_${suffix}`;
-            const legacyNoPrefix = `${domain}.${suffix}_${camera}`;
-            if (explicitId === legacyNoPrefix && modernNoPrefix in hass.states) return modernNoPrefix;
-            if (explicitId === modernNoPrefix && legacyNoPrefix in hass.states) return legacyNoPrefix;
+            const foscamPrefixed = `${domain}.foscam_${camera}_${suffix}`;
+            if (explicitId === foscamPrefixed && modern in hass.states) return modern;
+            if (explicitId === modern && foscamPrefixed in hass.states) return foscamPrefixed;
             return explicitId;
         }
 
@@ -3554,8 +3553,8 @@ class FoscamGlance extends HTMLElement {
 
             // Camera entity resolution
             if (!config.camera_id) {
-                if (`camera.aarlo_${camera}` in hass.states) {
-                    cc.id = `camera.aarlo_${camera}`;
+                if (`camera.foscam_${camera}` in hass.states) {
+                    cc.id = `camera.foscam_${camera}`;
                 } else if (`camera.${camera}` in hass.states) {
                     cc.id = `camera.${camera}`;
                 }
@@ -3573,8 +3572,8 @@ class FoscamGlance extends HTMLElement {
                 cc.doorBellId = this._resolveEntityId(hass, config.door_bell, 'binary_sensor', camera, 'ding');
             } else if (!cc.doorBellId) {
                 const dingCandidates = [
-                    `binary_sensor.aarlo_${camera}_ding`,
-                    `binary_sensor.aarlo_ding_${camera}`,
+                    `binary_sensor.${camera}_doorbell`,
+                    `binary_sensor.doorbell_${camera}`,
                     `binary_sensor.${camera}_ding`,
                     `binary_sensor.ding_${camera}`,
                 ];
@@ -3745,7 +3744,7 @@ class FoscamGlance extends HTMLElement {
 
     buildIcon(item, prefix, listener) {
         let elem = document.createElement("ha-icon");
-        elem.classList.add(`aarlo-icon-${this._sizeSuffix()}`);
+        elem.classList.add(`foscam-icon-${this._sizeSuffix()}`);
         elem.addEventListener('click', listener);
         elem.id = this._id(`${prefix}${item}`);
         return elem
@@ -3754,7 +3753,7 @@ class FoscamGlance extends HTMLElement {
     buildText(item, prefix) {
         let elem = document.createElement("span");
         elem.classList.add(`${prefix}-${item}`);
-        elem.classList.add(`aarlo-text-${this._sizeSuffix()}`);
+        elem.classList.add(`foscam-text-${this._sizeSuffix()}`);
         elem.id = this._id(`${prefix}${item}`);
         return elem
     }
@@ -3768,7 +3767,7 @@ class FoscamGlance extends HTMLElement {
     /**
      * Generate a new image URL.
      *
-     * This is done when Arlo changes the image or Home Assistance changes
+     * This is done when camera changes the image or Home Assistant changes
      * the authentication token. We always add the current time to the end to
      * force the browser to reload.
      *
@@ -3922,7 +3921,7 @@ class FoscamGlance extends HTMLElement {
         for (const candidate of candidates) {
             try {
                 this._log(`importing ${candidate} language`);
-                const module = await import(`https://cdn.jsdelivr.net/gh/twrecked/lovelace-hass-aarlo@master/lang/${candidate}.js`);
+                const module = await import(`https://cdn.jsdelivr.net/gh/twrecked/lovelace-hass-foscam@master/lang/${candidate}.js`);
                 if (module && module.messages) {
                     this._i = {
                         ...DEFAULT_MESSAGES,
@@ -4369,10 +4368,6 @@ if (!customElements.get("foscam-glance")) {
     customElements.define("foscam-glance", FoscamGlance);
 }
 
-// Backward compatibility alias for aarlo-glance
-if (!customElements.get("aarlo-glance")) {
-    customElements.define("aarlo-glance", FoscamGlance);
-}
 
 console.info(
     `%c FOSCAM-GLANCE %c ${CARD_VERSION} `,

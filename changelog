@@ -1,4 +1,6 @@
 Unreleased
+  - Remove aarlo-glance registration alias to prevent CustomElementRegistry collisions
+  - Clean up legacy aarlo CSS classes, DOM selectors, and entity resolution references across card source
 
 0.1.0-alpha.2
   - Added optical zoom and manual focus controls beside the PTZ D-pad overlay:

@@ -26,10 +26,6 @@ if (!customElements.get("foscam-glance")) {
     customElements.define("foscam-glance", FoscamGlance);
 }
 
-// Backward compatibility alias for aarlo-glance
-if (!customElements.get("aarlo-glance")) {
-    customElements.define("aarlo-glance", FoscamGlance);
-}
 
 console.info(
     `%c FOSCAM-GLANCE %c ${CARD_VERSION} `,

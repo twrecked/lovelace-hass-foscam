@@ -33,22 +33,22 @@ export const CARD_STYLES = `
             min-height: 48px;
             overflow: hidden;
         }
-        .aarlo-base, .camera-container {
+        .camera-container, .foscam-base {
             position: relative;
             overflow: hidden;
             width: 100%;
             background: #000;
         }
-        .aarlo-aspect-16x9 {
+        .camera-aspect-16x9, .foscam-aspect-16x9 {
             padding-top: 56.25%;
         }
-        .aarlo-aspect-4x3 {
+        .camera-aspect-4x3, .foscam-aspect-4x3 {
             padding-top: 75%;
         }
-        .aarlo-aspect-1x1 {
+        .camera-aspect-1x1, .foscam-aspect-1x1 {
             padding-top: 100%;
         }
-        .aarlo-image, .camera-image {
+        .camera-image, .foscam-image {
             position: absolute;
             top: 50%;
             left: 50%;
@@ -57,7 +57,7 @@ export const CARD_STYLES = `
             cursor: pointer;
             display: block;
         }
-        .aarlo-video, .stream-video {
+        .stream-video, .foscam-video {
             position: absolute;
             top: 50%;
             left: 50%;
@@ -137,7 +137,7 @@ export const CARD_STYLES = `
             opacity: 0;
             pointer-events: none;
         }
-        .aarlo-base:hover .ptz-hover-mode,
+        .foscam-base:hover .ptz-hover-mode,
         .camera-container:hover .ptz-hover-mode,
         ha-card:hover .ptz-hover-mode,
         .ptz-visible,
@@ -226,33 +226,33 @@ export const CARD_STYLES = `
         }
 
         /* Fullscreen PTZ scaling */
-        ha-card.aarlo-pseudo-fullscreen .ptz-overlay,
+        ha-card.foscam-pseudo-fullscreen .ptz-overlay,
         ha-card:fullscreen .ptz-overlay,
         ha-card:-webkit-full-screen .ptz-overlay {
             gap: 8px;
         }
-        ha-card.aarlo-pseudo-fullscreen .ptz-dpad,
+        ha-card.foscam-pseudo-fullscreen .ptz-dpad,
         ha-card:fullscreen .ptz-dpad,
         ha-card:-webkit-full-screen .ptz-dpad {
             grid-template-columns: repeat(3, 44px);
             grid-template-rows: repeat(3, 44px);
             gap: 6px;
         }
-        ha-card.aarlo-pseudo-fullscreen .ptz-lens-group,
+        ha-card.foscam-pseudo-fullscreen .ptz-lens-group,
         ha-card:fullscreen .ptz-lens-group,
         ha-card:-webkit-full-screen .ptz-lens-group,
-        ha-card.aarlo-pseudo-fullscreen .ptz-lens-column,
+        ha-card.foscam-pseudo-fullscreen .ptz-lens-column,
         ha-card:fullscreen .ptz-lens-column,
         ha-card:-webkit-full-screen .ptz-lens-column {
             gap: 6px;
         }
-        ha-card.aarlo-pseudo-fullscreen .ptz-btn,
+        ha-card.foscam-pseudo-fullscreen .ptz-btn,
         ha-card:fullscreen .ptz-btn,
         ha-card:-webkit-full-screen .ptz-btn {
             width: 44px;
             height: 44px;
         }
-        ha-card.aarlo-pseudo-fullscreen .ptz-btn ha-icon,
+        ha-card.foscam-pseudo-fullscreen .ptz-btn ha-icon,
         ha-card:fullscreen .ptz-btn ha-icon,
         ha-card:-webkit-full-screen .ptz-btn ha-icon {
             --mdc-icon-size: 22px;
@@ -313,7 +313,7 @@ export const CARD_STYLES = `
             opacity: 0;
             pointer-events: none;
         }
-        .aarlo-base:hover .preset-bar.ptz-hover-mode,
+        .foscam-base:hover .preset-bar.ptz-hover-mode,
         .camera-container:hover .preset-bar.ptz-hover-mode,
         ha-card:hover .preset-bar.ptz-hover-mode,
         .preset-bar.ptz-visible {

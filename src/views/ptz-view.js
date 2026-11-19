@@ -248,7 +248,7 @@ export const PtzViewMixin = {
     },
 
     hidePtzControls() {
-        const container = this._element("camera-container") || this._element("aarlo-wrapper");
+        const container = this._element("camera-container");
         if (container) {
             const overlay = container.querySelector(".ptz-overlay");
             if (overlay) overlay.style.display = "none";
@@ -258,7 +258,7 @@ export const PtzViewMixin = {
     },
 
     showPtzControls() {
-        const container = this._element("camera-container") || this._element("aarlo-wrapper");
+        const container = this._element("camera-container");
         if (container) {
             const overlay = container.querySelector(".ptz-overlay");
             if (overlay) overlay.style.display = "";
@@ -278,7 +278,7 @@ export const PtzViewMixin = {
         }
         this.showPtzControls();
 
-        const container = this._element("camera-container") || this._element("aarlo-wrapper");
+        const container = this._element("camera-container");
         if (!container) {
             return;
         }

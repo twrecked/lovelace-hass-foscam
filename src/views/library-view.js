@@ -110,7 +110,7 @@ export const LibraryViewMixin = {
             a.style.left = `2%`
             a.style.top  = `5%`
             a.setAttribute("download","")
-            a.innerHTML = `<ha-icon class="aarlo-icon-small" icon="mdi:download" style="color: white;"></ha-icon>`
+            a.innerHTML = `<ha-icon class="foscam-icon-small" icon="mdi:download" style="color: white;"></ha-icon>`
     
             const column = Math.floor((i % this.gs.librarySize) + 1)
             const row = Math.floor((i / this.gs.librarySize) + 1)

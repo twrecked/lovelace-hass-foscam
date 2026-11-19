@@ -111,7 +111,7 @@ export const StreamViewMixin = {
         const interactionTargets = [
             this._element("video-player"),
             this._element("modal-video-player"),
-            this._element("aarlo-wrapper"),
+            this._element("camera-container"),
             this._element("modal-video-wrapper"),
         ];
         interactionTargets.forEach((target) => {
@@ -279,7 +279,7 @@ export const StreamViewMixin = {
     async isWebRTC(cc) {
         if (!cc) return false;
         if (cc.webrtcPlay) return true;
-        if (cc.arloPlay || cc.haPlay) return false;
+        if (cc.foscamPlay || cc.haPlay) return false;
 
         if (this.cs && this.cs.frontendStreamTypes) {
             return this.cs.frontendStreamTypes.includes("web_rtc");
@@ -773,11 +773,11 @@ export const StreamViewMixin = {
 
         if (this.gs.viewer === 'modal') {
             if (modalViewer) {
-                modalViewer.classList.toggle('aarlo-pseudo-fullscreen', isFs);
+                modalViewer.classList.toggle('foscam-pseudo-fullscreen', isFs);
             }
         } else {
             if (haCard) {
-                haCard.classList.toggle('aarlo-pseudo-fullscreen', isFs);
+                haCard.classList.toggle('foscam-pseudo-fullscreen', isFs);
             }
         }
 
@@ -797,11 +797,11 @@ export const StreamViewMixin = {
 
         const haCard = this.querySelector('ha-card');
         if (haCard) {
-            haCard.classList.remove('aarlo-pseudo-fullscreen');
+            haCard.classList.remove('foscam-pseudo-fullscreen');
         }
         const modalViewer = this._element('modal-viewer');
         if (modalViewer) {
-            modalViewer.classList.remove('aarlo-pseudo-fullscreen');
+            modalViewer.classList.remove('foscam-pseudo-fullscreen');
         }
 
         try {
