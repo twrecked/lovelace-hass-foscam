@@ -1,4 +1,4 @@
-const CARD_VERSION = "0.1.0-alpha.2";
+const CARD_VERSION = "0.1.0-alpha.3";
 
 const DEFAULT_MESSAGES = {
     author: {
@@ -3646,7 +3646,7 @@ class FoscamGlance extends HTMLElement {
             recordings: null,
             size:       -1,
             sizeIndex:  0,
-            showPtz:    true,
+            showPtz:    false,
         }
     }
 
