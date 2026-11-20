@@ -1,6 +1,6 @@
 {
   "name": "lovelace-hass-foscam",
-  "version": "0.1.0-alpha.3",
+  "version": "0.1.0-alpha.4",
   "description": "Lovelace camera glance card with PTZ controls and clip browser for Foscam IP cameras",
   "type": "module",
   "scripts": {

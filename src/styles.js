@@ -115,7 +115,7 @@ export const CARD_STYLES = `
             gap: 6px;
             z-index: 25;
             transition: opacity 0.25s ease-in-out;
-            pointer-events: auto;
+            pointer-events: none;
         }
         .ptz-dpad {
             display: grid;
@@ -137,12 +137,34 @@ export const CARD_STYLES = `
             opacity: 0;
             pointer-events: none;
         }
-        .foscam-base:hover .ptz-hover-mode,
-        .camera-container:hover .ptz-hover-mode,
-        ha-card:hover .ptz-hover-mode,
+        .ptz-hover-mode .ptz-btn,
+        .preset-bar.ptz-hover-mode .preset-chip {
+            pointer-events: none !important;
+        }
+        @media (hover: hover) and (pointer: fine) {
+            .foscam-base:hover .ptz-hover-mode,
+            .camera-container:hover .ptz-hover-mode,
+            ha-card:hover .ptz-hover-mode,
+            .foscam-base:hover .preset-bar.ptz-hover-mode,
+            .camera-container:hover .preset-bar.ptz-hover-mode,
+            ha-card:hover .preset-bar.ptz-hover-mode {
+                opacity: 1 !important;
+            }
+            .camera-container:hover .ptz-hover-mode .ptz-btn,
+            ha-card:hover .ptz-hover-mode .ptz-btn,
+            .camera-container:hover .preset-bar.ptz-hover-mode .preset-chip,
+            ha-card:hover .preset-bar.ptz-hover-mode .preset-chip {
+                pointer-events: auto !important;
+            }
+        }
         .ptz-visible,
-        .ptz-active {
+        .ptz-active,
+        .preset-bar.ptz-visible {
             opacity: 1 !important;
+        }
+        .ptz-visible .ptz-btn,
+        .ptz-active .ptz-btn,
+        .preset-bar.ptz-visible .preset-chip {
             pointer-events: auto !important;
         }
         .ptz-btn {
@@ -159,6 +181,7 @@ export const CARD_STYLES = `
             transition: background-color 0.15s, transform 0.1s;
             box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
             border: 1px solid rgba(255, 255, 255, 0.25);
+            pointer-events: auto;
         }
         .ptz-btn ha-icon {
             --mdc-icon-size: 16px;
@@ -225,6 +248,57 @@ export const CARD_STYLES = `
             flex-direction: row;
         }
 
+        /* Fullscreen card and container sizing */
+        ha-card:fullscreen,
+        ha-card:-webkit-full-screen,
+        ha-card.foscam-pseudo-fullscreen {
+            width: 100vw !important;
+            height: 100vh !important;
+            height: 100dvh !important;
+            max-width: 100vw !important;
+            max-height: 100vh !important;
+            max-height: 100dvh !important;
+            background: #000 !important;
+            border-radius: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+        }
+        ha-card.foscam-pseudo-fullscreen {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            z-index: 99999 !important;
+        }
+        ha-card:fullscreen .camera-container,
+        ha-card:-webkit-full-screen .camera-container,
+        ha-card.foscam-pseudo-fullscreen .camera-container {
+            width: 100% !important;
+            height: 100% !important;
+            max-width: 100% !important;
+            max-height: 100% !important;
+            padding-top: 0 !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+        }
+        ha-card:fullscreen .stream-video,
+        ha-card:-webkit-full-screen .stream-video,
+        ha-card.foscam-pseudo-fullscreen .stream-video,
+        ha-card:fullscreen .camera-image,
+        ha-card:-webkit-full-screen .camera-image,
+        ha-card.foscam-pseudo-fullscreen .camera-image {
+            width: 100% !important;
+            height: 100% !important;
+            max-width: 100% !important;
+            max-height: 100% !important;
+            object-fit: contain !important;
+        }
+
         /* Fullscreen PTZ scaling */
         ha-card.foscam-pseudo-fullscreen .ptz-overlay,
         ha-card:fullscreen .ptz-overlay,
@@ -260,12 +334,44 @@ export const CARD_STYLES = `
             height: 22px;
         }
 
+        /* Landscape mobile fullscreen scaling */
+        @media (max-height: 480px) and (orientation: landscape) {
+            ha-card.foscam-pseudo-fullscreen .ptz-dpad,
+            ha-card:fullscreen .ptz-dpad,
+            ha-card:-webkit-full-screen .ptz-dpad {
+                grid-template-columns: repeat(3, 34px);
+                grid-template-rows: repeat(3, 34px);
+                gap: 4px;
+            }
+            ha-card.foscam-pseudo-fullscreen .ptz-lens-column,
+            ha-card:fullscreen .ptz-lens-column,
+            ha-card:-webkit-full-screen .ptz-lens-column,
+            ha-card.foscam-pseudo-fullscreen .ptz-lens-group,
+            ha-card:fullscreen .ptz-lens-group,
+            ha-card:-webkit-full-screen .ptz-lens-group {
+                gap: 4px;
+            }
+            ha-card.foscam-pseudo-fullscreen .ptz-btn,
+            ha-card:fullscreen .ptz-btn,
+            ha-card:-webkit-full-screen .ptz-btn {
+                width: 34px;
+                height: 34px;
+            }
+            ha-card.foscam-pseudo-fullscreen .ptz-btn ha-icon,
+            ha-card:fullscreen .ptz-btn ha-icon,
+            ha-card:-webkit-full-screen .ptz-btn ha-icon {
+                --mdc-icon-size: 18px;
+                width: 18px;
+                height: 18px;
+            }
+        }
+
         /* Presets Bar & Positions */
         .preset-bar {
             position: absolute;
             z-index: 24;
             transition: opacity 0.25s ease-in-out;
-            pointer-events: auto;
+            pointer-events: none;
             gap: 5px;
         }
         .preset-orient-horizontal {
@@ -279,6 +385,8 @@ export const CARD_STYLES = `
             align-items: flex-start;
             max-height: calc(100% - 88px);
             overflow-y: auto;
+            width: fit-content;
+            max-width: calc(100% - 16px);
         }
         .preset-pos-bottom {
             bottom: 44px;
@@ -313,13 +421,6 @@ export const CARD_STYLES = `
             opacity: 0;
             pointer-events: none;
         }
-        .foscam-base:hover .preset-bar.ptz-hover-mode,
-        .camera-container:hover .preset-bar.ptz-hover-mode,
-        ha-card:hover .preset-bar.ptz-hover-mode,
-        .preset-bar.ptz-visible {
-            opacity: 1 !important;
-            pointer-events: auto !important;
-        }
         .preset-chip {
             background-color: rgba(0, 0, 0, 0.7);
             color: #fff;
@@ -333,6 +434,7 @@ export const CARD_STYLES = `
             border: 1px solid rgba(255, 255, 255, 0.2);
             transition: background-color 0.15s, transform 0.1s;
             white-space: nowrap;
+            pointer-events: auto;
         }
         .preset-chip:hover {
             background-color: #03a9f4;

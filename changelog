@@ -1,3 +1,8 @@
+0.1.0-alpha.4
+  - Restrict PTZ hover mode to devices with a fine pointer that supports hover; touch users can still toggle PTZ controls explicitly.
+  - Let taps in the gaps between PTZ buttons and presets reach the camera preview and trigger the configured action.
+  - Fit the camera preview and stream to the fullscreen viewport and use smaller PTZ controls on short landscape screens.
+
 0.1.0-alpha.3
   - Fix PTZ hover mode initial visibility: initialize showPtz state to false so D-pad and preset chips remain hidden until hovered over
   - Remove aarlo-glance registration alias to eliminate CustomElementRegistry duplicate constructor collisions and avoid interfering with lovelace-hass-aarlo

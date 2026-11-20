@@ -667,6 +667,9 @@ export const StreamViewMixin = {
         if (controls && controls.contains(evt.target)) {
             return;
         }
+        if (evt.target && evt.target.closest && (evt.target.closest('.ptz-btn') || evt.target.closest('.preset-chip'))) {
+            return;
+        }
 
         const now = Date.now();
         if (this._lastInteractionTime && (now - this._lastInteractionTime < 350)) {

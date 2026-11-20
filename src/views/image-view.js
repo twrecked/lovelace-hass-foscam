@@ -128,26 +128,38 @@ export const ImageViewMixin = {
     },
 
     setupImageHandlers() {
-        const viewer = this._element("camera-viewer")
+        const viewer = this._element("camera-viewer");
+        const container = this._element("camera-container");
     
-        viewer.addEventListener('error', () => {
-            this.imageFailed();
-        });
-        viewer.addEventListener('click', () => {
-            this.imageClicked();
-        });
+        if (viewer) {
+            viewer.addEventListener('error', () => {
+                this.imageFailed();
+            });
+        }
+
+        if (container) {
+            container.addEventListener('click', (evt) => {
+                if (evt.target && evt.target.closest && (evt.target.closest('.ptz-btn') || evt.target.closest('.preset-chip'))) {
+                    return;
+                }
+                if (this.gs.stream === null && this.gs.recording === null && !this.ls.showing) {
+                    this.imageClicked();
+                }
+            });
+        }
     
-        if( this.gc.isMobile ) {
-            viewer.addEventListener('touchstart', (e) => {
+        const swipeTarget = container || viewer;
+        if( this.gc.isMobile && swipeTarget ) {
+            swipeTarget.addEventListener('touchstart', (e) => {
                 this.ls.xDown = e.touches[0].clientX
                 this.ls.xUp = null
             }, { passive: true })
     
-            viewer.addEventListener('touchmove', (e) => {
+            swipeTarget.addEventListener('touchmove', (e) => {
                 this.ls.xUp = e.touches[0].clientX
             }, { passive: true })
     
-            viewer.addEventListener('touchend', () => {
+            swipeTarget.addEventListener('touchend', () => {
                 if( this.ls.xDown && this.ls.xUp ) {
                     const xDiff = this.ls.xDown - this.ls.xUp;
                     if( xDiff > this.gc.swipeThreshold ) {
